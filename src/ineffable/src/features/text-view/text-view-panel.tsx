@@ -16,13 +16,6 @@ const sampleText = [
   `The light flickered between the tall trunks and upper branches of the redwoods as he walked toward the tree where Paper the Squirrel lived.`,
 ];
 
-// function splitText(text: string, mode: SliderStop): string[] {
-//   if (mode === 'Paragraph') return [text];
-//   if (mode === 'Sentence') return text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
-//   if (mode === 'Word') return text.split(/\s+/);
-//   return [text];
-// }
-
 const TextViewPanel: React.FC = () => {
   const [sliderValue, setSliderValue] = useState<SliderStop>('Paragraph');
   // the id of the highlighted element
@@ -43,33 +36,37 @@ const TextViewPanel: React.FC = () => {
       {/* Highlighted selectable text */}
       <div className="w-full mb-4 min-h-[120px]">
         {document.paragraphs.map(p => (
-          <p key={p.id} 
-             className={selected === p.id ? 'bg-yellow-200' : ''}
-             onClick={() => sliderValue == 'Paragraph'? setSelected(p.id): null}
-          >
+            <p
+            key={p.id}
+            className={`${selected === p.id ? 'bg-yellow-200' : ''} my-2`}
+            onClick={() => sliderValue === 'Paragraph' ? setSelected(p.id) : null}
+            >
             {p.sentences.map(s => (
-              <span 
-                key={s.id} 
-                className={selected === s.id ? 'bg-yellow-200' : ''}
-                onClick={() => sliderValue === 'Sentence' ? setSelected(s.id) : null}
+              <span
+              key={s.id}
+              className={selected === s.id ? 'bg-yellow-200' : ''}
+              onClick={() => sliderValue === 'Sentence' ? setSelected(s.id) : null}
+              >
+              {s.words.map(w => (
+                <span
+                key={w.id}
+                className={selected === w.id ? 'bg-yellow-200' : ''}
+                onClick={() => sliderValue === 'Word' ? setSelected(w.id) : null}
                 >
-                {s.words.map(w => (
-                  <span 
-                    key={w.id} 
-                    className={selected === w.id ? 'bg-yellow-200' : ''}
-                    onClick={() => sliderValue === 'Word' ? setSelected(w.id) : null}
-                  >
-                    {w.text}{' '}
-                  </span>
-                ))}
+                {w.text}{' '}
+                </span>
+              ))}
               </span>
             ))}
-          </p>
+            </p>
         ))}
       </div>
       {/* Selected element display */}
       <div className="w-full bg-gray-100 p-2 rounded min-h-[32px]">
-        <strong>Selected:</strong> {selected || <span className="text-gray-400">None</span>}
+        <strong>Selected:</strong> 
+        <span className="text-gray-400">
+          {selected ? document.elementMap[selected].text : "None"} 
+          </span>
       </div>
     </div>
   );

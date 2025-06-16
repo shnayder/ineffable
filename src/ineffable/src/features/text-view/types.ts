@@ -19,4 +19,5 @@ export type Paragraph = {
 
 export type Document = {
   paragraphs: Paragraph[];
+  elementMap: { [id: string]: Paragraph | Sentence | Word };
 };

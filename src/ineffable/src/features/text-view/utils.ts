@@ -26,5 +26,18 @@ export function parseRawText(raw: string[]): Document {
       sentences,
     };
   });
-  return { paragraphs };
+  // Build elementMap while parsing
+  const elementMap: Record<string, Paragraph | Sentence | Word> = {};
+
+  paragraphs.forEach((para) => {
+    elementMap[para.id] = para;
+    para.sentences.forEach((sentence) => {
+      elementMap[sentence.id] = sentence;
+      sentence.words.forEach((word) => {
+        elementMap[word.id] = word;
+      });
+    });
+  });
+
+  return { paragraphs, elementMap };
 }
