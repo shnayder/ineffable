@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import Slider from '@/components/Slider';
+import { parseRawText } from './utils';
+import { Document, Paragraph, Sentence, Word } from './types';
 
 // This file has been moved to features/text-view/TextViewPanel.tsx
 
@@ -14,39 +16,55 @@ const sampleText = [
   `The light flickered between the tall trunks and upper branches of the redwoods as he walked toward the tree where Paper the Squirrel lived.`,
 ];
 
-function splitText(text: string, mode: SliderStop): string[] {
-  if (mode === 'Paragraph') return [text];
-  if (mode === 'Sentence') return text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
-  if (mode === 'Word') return text.split(/\s+/);
-  return [text];
-}
+// function splitText(text: string, mode: SliderStop): string[] {
+//   if (mode === 'Paragraph') return [text];
+//   if (mode === 'Sentence') return text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
+//   if (mode === 'Word') return text.split(/\s+/);
+//   return [text];
+// }
 
 const TextViewPanel: React.FC = () => {
   const [sliderValue, setSliderValue] = useState<SliderStop>('Paragraph');
+  // the id of the highlighted element
   const [selected, setSelected] = useState<string | null>(null);
 
-  let elements: string[] = [];
-  if (sliderValue === 'Paragraph') {
-    elements = sampleText;
-  } else {
-    elements = sampleText.flatMap(paragraph => splitText(paragraph, sliderValue));
-  }
+  let document: Document = parseRawText(sampleText);
+
+  // Reset selected when sliderValue changes
+  React.useEffect(() => {
+    setSelected(null);
+  }, [sliderValue]);
 
   return (
     <div className="flex flex-col items-start h-full justify-center w-1/2">
       {/* Slider */}
       <Slider stops={SLIDER_STOPS} value={sliderValue} onChange={v => setSliderValue(v as SliderStop)} />
+
       {/* Highlighted selectable text */}
       <div className="w-full mb-4 min-h-[120px]">
-        {elements.map((el, idx) => (
-          <span
-            key={idx}
-            onClick={() => setSelected(el)}
-            className={`transition-colors rounded px-0.5 py-0.5 cursor-pointer ${selected === el ? 'bg-yellow-200' : ''} ${sliderValue === 'Paragraph' ? 'block' : 'inline'} ${sliderValue === 'Word' ? 'mr-1' : ''}`}
+        {document.paragraphs.map(p => (
+          <p key={p.id} 
+             className={selected === p.id ? 'bg-yellow-200' : ''}
+             onClick={() => sliderValue == 'Paragraph'? setSelected(p.id): null}
           >
-            {el}
-            {(sliderValue === 'Sentence' || sliderValue === 'Word') ? ' ' : ''}
-          </span>
+            {p.sentences.map(s => (
+              <span 
+                key={s.id} 
+                className={selected === s.id ? 'bg-yellow-200' : ''}
+                onClick={() => sliderValue === 'Sentence' ? setSelected(s.id) : null}
+                >
+                {s.words.map(w => (
+                  <span 
+                    key={w.id} 
+                    className={selected === w.id ? 'bg-yellow-200' : ''}
+                    onClick={() => sliderValue === 'Word' ? setSelected(w.id) : null}
+                  >
+                    {w.text}{' '}
+                  </span>
+                ))}
+              </span>
+            ))}
+          </p>
         ))}
       </div>
       {/* Selected element display */}
