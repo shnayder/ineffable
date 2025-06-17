@@ -5,3 +5,72 @@ html, body, #root {
   padding: 0;
   height: 100%;
 }
+
+@theme {
+  /* Backgrounds */
+  --color-background: oklch(0.98 0.01 250);           /* #f9fafb */
+  --color-background-subtle: oklch(0.96 0.01 250);    /* #f3f4f6 */
+  --color-background-elevated: oklch(1 0 0);          /* #ffffff */
+
+  /* Text */
+  --color-text: oklch(0.18 0.01 250);                 /* #111827 */
+  --color-text-muted: oklch(0.48 0.01 250);           /* #6b7280 */
+  --color-text-subtle: oklch(0.6 0.01 250);           /* #9ca3af */
+  --color-text-inverted: oklch(0.2 0.01 250);         /* #1f2937 */
+
+  /* Surface */
+  --color-surface: var(--color-background-elevated);
+  --color-surface-hover: oklch(0.94 0.01 250);        /* #f1f5f9 */
+  --color-surface-selected: oklch(0.89 0.07 250);     /* #e0f2fe */
+
+  /* Border */
+  --color-border: oklch(0.84 0.01 250);               /* #d1d5db */
+  --color-border-subtle: oklch(0.91 0.01 250);        /* #e5e7eb */
+  --color-border-strong: oklch(0.6 0.01 250);         /* #9ca3af */
+
+  /* Semantic */
+  --color-primary: oklch(0.65 0.22 250);              /* #3b82f6 */
+  --color-primary-hover: oklch(0.55 0.24 250);        /* #2563eb */
+  --color-primary-selected: oklch(0.48 0.26 250);     /* #1d4ed8 */
+  --color-primary-bg: oklch(0.94 0.05 250);           /* #eff6ff */
+
+  --color-success: oklch(0.65 0.19 150);              /* #10b981 */
+  --color-success-bg: oklch(0.94 0.05 150);           /* #ecfdf5 */
+
+  --color-warning: oklch(0.78 0.2 90);                /* #f59e0b */
+  --color-warning-bg: oklch(0.96 0.05 90);            /* #fffbeb */
+
+  --color-error: oklch(0.6 0.25 30);                  /* #ef4444 */
+  --color-error-bg: oklch(0.96 0.05 30);              /* #fef2f2 */
+
+  /* Highlights */
+  --color-highlight-yellow: oklch(0.94 0.18 100);     /* #fef08a */
+  --color-highlight-blue: oklch(0.92 0.15 250);       /* #bae6fd */
+  --color-highlight-pink: oklch(0.94 0.15 320);       /* #fbcfe8 */
+}
+
+.bg-background           { background-color: var(--color-background); }
+.bg-background-subtle    { background-color: var(--color-background-subtle); }
+.bg-background-elevated  { background-color: var(--color-background-elevated); }
+
+.text-text               { color: var(--color-text); }
+.text-text-muted         { color: var(--color-text-muted); }
+.text-text-subtle        { color: var(--color-text-subtle); }
+.bg-text-inverted        { background-color: var(--color-text-inverted); }
+
+.bg-surface              { background-color: var(--color-surface); }
+.bg-surface-hover        { background-color: var(--color-surface-hover); }
+.bg-surface-selected     { background-color: var(--color-surface-selected); }
+
+.border-border           { border-color: var(--color-border); }
+
+.bg-primary              { background-color: var(--color-primary); }
+.bg-success              { background-color: var(--color-success); }
+.bg-warning              { background-color: var(--color-warning); }
+.bg-error                { background-color: var(--color-error); }
+
+.bg-highlight-yellow     { background-color: var(--color-highlight-yellow); }
+.bg-highlight-blue       { background-color: var(--color-highlight-blue); }
+.bg-highlight-pink       { background-color: var(--color-highlight-pink); }
+
+

@@ -1,5 +1,6 @@
 import React from 'react';
 import TextViewPanel from '@/features/text-view/text-view-panel';
+import ThemePreview from '@/features/theme-preview/theme-preview';
 
 const App = () => {
   return (
@@ -8,8 +9,13 @@ const App = () => {
         <h2 className="text-xl font-bold mb-2">Info Panel</h2>
         <p className="text-gray-700">Here's our text:</p>
       </div>
-      <div className="text-view-panel flex-1 flex items-center justify-center">
-        <TextViewPanel />
+      <div className="text-view-panel flex-1 flex flex-col overflow-auto">
+        <div className="flex-1 flex items-center justify-center">
+          <TextViewPanel />
+        </div>
+        <div className="mt-4">
+          <ThemePreview />
+        </div>
       </div>
     </div>
   );
