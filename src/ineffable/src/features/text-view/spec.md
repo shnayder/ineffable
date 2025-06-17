@@ -1,9 +1,12 @@
 Start with some text.
 
 1. Display it at paragraph, sentence, or word level, controlled by the user.
-    1. Show elements at current level
-    1. Better slider — smaller, clickable labels
+    1. Show elements at current level (done)
+    1. Better slider — smaller, clickable labels (done)
 1. Let user select an element to see more details.
+    1. Keep main text on left, details in panel on right.
+    1. Support several kinds of annotations — critique, thoughts, suggestions to start.
+    1. hint at existence of annotations in main view somehow -- icons, counts, colors?
 1. Support multiple annotations on each element. For now dummy ones. They'll come from other components later.
 1. Let user edit at word, sentence, paragraph level.
 1. If editing sentence or paragraph, do a diff to avoid recreating lower-level elements that didn't actually change. 
