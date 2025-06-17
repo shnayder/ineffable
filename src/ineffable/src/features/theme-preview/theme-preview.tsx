@@ -24,14 +24,14 @@ export default function ThemePreview() {
       <section>
         <h2 className="text-lg font-semibold">Surfaces</h2>
         <div className="grid grid-cols-3 gap-4">
-          <div className="p-4 bg-surface-bg-body border border-border">
+          <div className="p-4 bg-surface-bg-body border border-surface-border-base">
             surface-bg-body
           </div>
-          <div className="p-4 bg-surface-bg-base border border-border">
+          <div className="p-4 bg-surface-bg-base border border-surface-border-base">
             surface-bg-base
           </div>
-          <div className="p-4 bg-surface-bg-overlay border border-border">
-            surface-bg-overlay
+          <div className="p-4 bg-surface-bg-overlay border border-surface-border-overlay">
+            surface-bg-overlay with overlay border
           </div>
           <div className="p-4 bg-surface-bg-overlay-hover border border-border">
             surface-bg-overlay-hover
@@ -45,49 +45,34 @@ export default function ThemePreview() {
 
       {/* Text */}
       <section>
-        <h2 className="text-lg font-semibold">Text</h2>
-        <p className="text-text">Default text</p>
-        <p className="text-text-muted">Muted text (comments)</p>
-        <p className="text-text-subtle">Subtle hint text</p>
-        <p className="bg-text-inverted text-white p-2">
-          Inverted text on dark background
-        </p>
+        <h2 className="text-lg font-semibold py-2">Text</h2>
+        <p className="text-neutral-fg-strong">Strong text</p>
+        <p className="text-neutral-fg">Default text = medium</p>
+        <p className="text-neutral-fg-subtle">Muted text (comments)</p>
+        <p className="text-neutral-fg-dimmed">Dimmed hint text</p>
       </section>
 
-      {/* Surfaces */}
-      <section>
-        <h2 className="text-lg font-semibold">Surfaces</h2>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="p-4 bg-surface border border-border">
-            Default surface
-          </div>
-          <div className="p-4 bg-surface-hover border border-border">
-            Hover surface
-          </div>
-          <div className="p-4 bg-surface-selected border border-border">
-            Selected surface
-          </div>
-        </div>
-      </section>
-
-      {/* Semantic colors */}
-      <section>
-        <h2 className="text-lg font-semibold">Semantic Colors</h2>
-        <div className="grid grid-cols-4 gap-4">
-          <div className="p-4 bg-primary text-white">Primary</div>
-          <div className="p-4 bg-success text-white">Success</div>
-          <div className="p-4 bg-warning text-white">Warning</div>
-          <div className="p-4 bg-error text-white">Error</div>
-        </div>
-      </section>
 
       {/* Highlights */}
       <section>
-        <h2 className="text-lg font-semibold">Highlights</h2>
+        <h2 className="text-lg font-semibold py-2">Highlights</h2>
         <div className="grid grid-cols-3 gap-4">
-          <div className="p-4 bg-highlight-yellow">Highlight Yellow</div>
-          <div className="p-4 bg-highlight-blue">Highlight Blue</div>
-          <div className="p-4 bg-highlight-pink">Highlight Pink</div>
+          <div className="p-4 bg-neutral-highlight">Highlight</div>
+          <div className="p-4 border-b border-b-neutral-fg-accent1">Accent 1</div>
+          <div className="p-4 border-b border-b-neutral-fg-accent2">Accent 2</div>
+          <div className="p-4 border-b border-b-neutral-fg-accent3">Accent 3</div>
+        </div>
+      </section>
+
+
+      {/* Primary colors */}
+      <section>
+        <h2 className="text-lg font-semibold py-2">Primary Colors</h2>
+        <div className="grid grid-cols-4 gap-4">
+          <div className="p-4 text-primary-fg bg-primary-bg">Primary</div>
+          <div className="p-4 text-primary-fg-hover bg-primary-bg-hover">Primary hover</div>
+          <div className="p-4 text-primary-fg-active bg-primary-bg-active">Primary active</div>
+          <div className="p-4 text-primary-fg-inactive bg-primary-bg-inactive">Primary inactive</div>
         </div>
       </section>
    </div>

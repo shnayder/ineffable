@@ -21,7 +21,12 @@ html, body, #root {
   /* --color-surface-border-focus-alpha: color-mix(in srgb, var(--color-gray-400) 50%, transparent); */
   
   /* Neutral -- for text, etc */
-  --color-neutral-fg: var(--color-slate-900);
+  --color-neutral-fg-strong: var(--color-slate-950);
+  --color-neutral-fg: var(--color-slate-900);  /* default is medium */
+  --color-neutral-fg-medium: var(--color-slate-900);
+  --color-neutral-fg-subtle: var(--color-slate-700);
+  --color-neutral-fg-dimmed: var(--color-slate-500);
+  
   --color-neutral-highlight: var(--color-yellow-100);
   --color-neutral-fg-accent1: var(--color-indigo-300);
   --color-neutral-fg-accent2: var(--color-cyan-300);
@@ -33,7 +38,7 @@ html, body, #root {
   --color-primary-bg-active: var(--color-blue-300);
 
   --color-primary-fg: var(--color-blue-800);
-  --color-primary-fg-hover: var(--color-blue-600);
+  --color-primary-fg-hover: var(--color-blue-600);  /* remove? Keep fg same for hover? */
   --color-primary-fg-active: var(--color-blue-800);
   --color-primary-fg-inactive: var(--color-blue-600);
   
