@@ -93,7 +93,7 @@ const TextViewPanel: React.FC = () => {
         </div>
         {/* Selected element display */}
         <div className="w-full bg-gray-100 p-2 rounded min-h-[32px]">
-          <strong>Selected:</strong> {selected || <span className="text-gray-400">None</span>}
+          <strong>Selected:</strong> {selected ? document.elementMap[selected].text : <span className="text-gray-400">None</span>}
         </div>
       </div>
       {/* Floating comment */}
