@@ -4,6 +4,7 @@ import { parseRawText } from './utils';
 import { Document, Paragraph, Sentence, Word } from './types';
 import CommentCard, { Comment } from './comment-card';
 import DetailsPanel from './details-panel';
+import TextPanel from './text-panel';
 
 const SLIDER_STOPS = ['Word', 'Sentence', 'Paragraph'] as const;
 type SliderStop = typeof SLIDER_STOPS[number];
@@ -20,36 +21,14 @@ const TextViewPanel: React.FC = () => {
   const [sliderValue, setSliderValue] = useState<SliderStop>('Paragraph');
   // the id of the highlighted element
   const [selected, setSelected] = useState<string | null>(null);
-  const [commentPos, setCommentPos] = useState<{ top: number } | null>(null);
-  const textContainerRef = React.useRef<HTMLDivElement>(null);
-
+  
   let document: Document = parseRawText(sampleText);
 
-  // Reset selected and comment position when sliderValue changes
+  // Reset selected when sliderValue changes
   React.useEffect(() => {
     setSelected(null);
-    setCommentPos(null);
   }, [sliderValue]);
 
-  // When selected changes, update comment position
-  React.useEffect(() => {
-    if (!selected) {
-      setCommentPos(null);
-      return;
-    }
-    // Try to find the DOM node for the selected element
-    const el = window.document.getElementById(selected);
-    if (el && textContainerRef.current) {
-      const elRect = el.getBoundingClientRect();
-      const containerRect = textContainerRef.current.getBoundingClientRect();
-      setCommentPos({ top: elRect.top - containerRect.top });
-    }
-  }, [selected]);
-
-  // Set up alternating colors for selected level. Transparent lines left (paragraph) or underneath (sentence and word) the elements.
-  let pStyle = sliderValue === 'Paragraph' ? 'border-l-2 odd:border-neutral-fg-accent1 even:border-neutral-fg-accent2' : '';
-  let sStyle = sliderValue === 'Sentence' ? 'odd:border-b-2 odd:border-neutral-fg-accent1 even:border-b-1 even:border-neutral-fg-accent2' : '';
-  let wStyle = sliderValue === 'Word' ? 'odd:border-b-2 odd:border-neutral-fg-accent1 even:border-b-1 even:border-neutral-fg-accent2' : '';
 
   // Example: comments for each element (replace with real data as needed)
   const commentsMap: Record<string, Comment[]> = {
@@ -62,53 +41,21 @@ const TextViewPanel: React.FC = () => {
 
   return (
     <div className="flex flex-col items-start h-full justify-center w-full p-4 bg-surface-bg-base border-surface-border-base border-1 rounded">
-        {/* Slider */}
-        <Slider stops={SLIDER_STOPS} value={sliderValue} onChange={v => setSliderValue(v as SliderStop)} />
+
+      <Slider stops={SLIDER_STOPS} value={sliderValue} onChange={v => setSliderValue(v as SliderStop)} />
 
       <div className="flex flex-row items-start h-full justify-between relative">
+        <div className="flex-1">
 
-        <div ref={textContainerRef} className="flex-1">
-
-          {/* Highlighted selectable text */}
-          <div className="w-full mb-4 min-h-[120px] max-w-prose">
-            {document.paragraphs.map(p => (
-              <p
-                key={p.id}
-                id={p.id}
-                className={`${selected === p.id ? 'bg-neutral-highlight' : pStyle} my-2 p-2`}
-                onClick={() => sliderValue === 'Paragraph' ? setSelected(p.id) : null}
-              >
-                {p.sentences.map(s => (
-                  <span
-                    key={s.id}
-                    id={s.id}
-                    className={selected === s.id ? 'bg-neutral-highlight' : sStyle}
-                    onClick={e => {
-                      if (sliderValue === 'Sentence') setSelected(s.id);
-                    }}
-                  >
-                    {s.words.map(w => (
-                      <span
-                        key={w.id}
-                        id={w.id}
-                        className={selected === w.id ? 'bg-neutral-highlight' : wStyle}
-                        onClick={e => {
-                          if (sliderValue === 'Word') setSelected(w.id);
-                        }}
-                      >
-                        {w.text}{' '}
-                      </span>
-                    ))}
-                  </span>
-                ))}
-              </p>
-            ))}
-          </div>
+          <TextPanel
+            sliderValue={sliderValue}
+            onSelect={setSelected}
+            selected={selected}
+            sampleText={sampleText}
+          />
         </div>
-        {/* Details panel on the right */}
-        {selected && commentPos && (
-          <DetailsPanel comments={comments} top={commentPos.top} selectedId={selected} />
-        )}
+
+        <DetailsPanel comments={comments} selectedId={selected || ''} />
       </div>
     </div>
   );
