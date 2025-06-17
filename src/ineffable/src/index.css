@@ -7,70 +7,36 @@ html, body, #root {
 }
 
 @theme {
-  /* Backgrounds */
-  --color-background: oklch(0.98 0.01 250);           /* #f9fafb */
-  --color-background-subtle: oklch(0.96 0.01 250);    /* #f3f4f6 */
-  --color-background-elevated: oklch(1 0 0);          /* #ffffff */
 
-  /* Text */
-  --color-text: oklch(0.18 0.01 250);                 /* #111827 */
-  --color-text-muted: oklch(0.48 0.01 250);           /* #6b7280 */
-  --color-text-subtle: oklch(0.6 0.01 250);           /* #9ca3af */
-  --color-text-inverted: oklch(0.2 0.01 250);         /* #1f2937 */
+  /* Surface -- for main app, overlays, and other surfaces */
+  --color-surface-bg-body : var(--color-white); 
+  --color-surface-bg-base : var(--color-gray-50);  /* for cards and other content */
+  --color-surface-bg-overlay : var(--color-sky-50); 
+  --color-surface-bg-overlay-hover : var(--color-sky-200);
+  --color-surface-border-base: var(--color-slate-300);
+  --color-surface-border-overlay: var(--color-slate-300);
+  --color-surface-border-focus: var(--color-slate-400);
+  
+  /* Example if I want alpha versions */
+  /* --color-surface-border-focus-alpha: color-mix(in srgb, var(--color-gray-400) 50%, transparent); */
+  
+  /* Neutral -- for text, etc */
+  --color-neutral-fg: var(--color-slate-900);
+  --color-neutral-highlight: var(--color-yellow-100);
+  --color-neutral-fg-accent1: var(--color-indigo-300);
+  --color-neutral-fg-accent2: var(--color-cyan-300);
+  --color-neutral-fg-accent3: var(--color-orange-300);
 
-  /* Surface */
-  --color-surface: var(--color-background-elevated);
-  --color-surface-hover: oklch(0.94 0.01 250);        /* #f1f5f9 */
-  --color-surface-selected: oklch(0.89 0.07 250);     /* #e0f2fe */
+  /* Primary — for controls */
+  --color-primary-bg: var(--color-blue-100);
+  --color-primary-bg-hover: var(--color-blue-200);
+  --color-primary-bg-active: var(--color-blue-300);
 
-  /* Border */
-  --color-border: oklch(0.84 0.01 250);               /* #d1d5db */
-  --color-border-subtle: oklch(0.91 0.01 250);        /* #e5e7eb */
-  --color-border-strong: oklch(0.6 0.01 250);         /* #9ca3af */
-
-  /* Semantic */
-  --color-primary: oklch(0.65 0.22 250);              /* #3b82f6 */
-  --color-primary-hover: oklch(0.55 0.24 250);        /* #2563eb */
-  --color-primary-selected: oklch(0.48 0.26 250);     /* #1d4ed8 */
-  --color-primary-bg: oklch(0.94 0.05 250);           /* #eff6ff */
-
-  --color-success: oklch(0.65 0.19 150);              /* #10b981 */
-  --color-success-bg: oklch(0.94 0.05 150);           /* #ecfdf5 */
-
-  --color-warning: oklch(0.78 0.2 90);                /* #f59e0b */
-  --color-warning-bg: oklch(0.96 0.05 90);            /* #fffbeb */
-
-  --color-error: oklch(0.6 0.25 30);                  /* #ef4444 */
-  --color-error-bg: oklch(0.96 0.05 30);              /* #fef2f2 */
-
-  /* Highlights */
-  --color-highlight-yellow: oklch(0.94 0.18 100);     /* #fef08a */
-  --color-highlight-blue: oklch(0.92 0.15 250);       /* #bae6fd */
-  --color-highlight-pink: oklch(0.94 0.15 320);       /* #fbcfe8 */
+  --color-primary-fg: var(--color-blue-800);
+  --color-primary-fg-hover: var(--color-blue-600);
+  --color-primary-fg-active: var(--color-blue-800);
+  --color-primary-fg-inactive: var(--color-blue-600);
+  
 }
-
-.bg-background           { background-color: var(--color-background); }
-.bg-background-subtle    { background-color: var(--color-background-subtle); }
-.bg-background-elevated  { background-color: var(--color-background-elevated); }
-
-.text-text               { color: var(--color-text); }
-.text-text-muted         { color: var(--color-text-muted); }
-.text-text-subtle        { color: var(--color-text-subtle); }
-.bg-text-inverted        { background-color: var(--color-text-inverted); }
-
-.bg-surface              { background-color: var(--color-surface); }
-.bg-surface-hover        { background-color: var(--color-surface-hover); }
-.bg-surface-selected     { background-color: var(--color-surface-selected); }
-
-.border-border           { border-color: var(--color-border); }
-
-.bg-primary              { background-color: var(--color-primary); }
-.bg-success              { background-color: var(--color-success); }
-.bg-warning              { background-color: var(--color-warning); }
-.bg-error                { background-color: var(--color-error); }
-
-.bg-highlight-yellow     { background-color: var(--color-highlight-yellow); }
-.bg-highlight-blue       { background-color: var(--color-highlight-blue); }
-.bg-highlight-pink       { background-color: var(--color-highlight-pink); }
 
 

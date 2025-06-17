@@ -1,21 +1,45 @@
+// List of colors to show. We'll filter by names below.
+let color_roles = ["surface", "base", "inverted", "black", "white", "input", "link", "primary", "neutral", "notice", "negative", "secondary", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6"]
+let colors = [
+  "surface-bg-body",
+  "surface-bg-base",
+  "surface-bg-overlay",
+  "surface-bg-overlay-hover",
+  "surface-bg-overlay-active",
+  "surface-border",
+  "surface-border-focus",
+
+  "base-fg-body",
+
+  "base-fg-highlight",
+  ]
+
+
 export default function ThemePreview() {
   return (
-    <div className="space-y-6 p-6 bg-background text-text">
-      <h1 className="text-2xl font-bold">Theme Preview</h1>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold flex flex-col">Theme Preview</h1>
 
-      {/* Backgrounds */}
+      {/* Surfaces */}
       <section>
-        <h2 className="text-lg font-semibold">Backgrounds</h2>
+        <h2 className="text-lg font-semibold">Surfaces</h2>
         <div className="grid grid-cols-3 gap-4">
-          <div className="p-4 bg-background border border-border">
-            bg-background
+          <div className="p-4 bg-surface-bg-body border border-border">
+            surface-bg-body
           </div>
-          <div className="p-4 bg-background-subtle border border-border">
-            bg-background-subtle
+          <div className="p-4 bg-surface-bg-base border border-border">
+            surface-bg-base
           </div>
-          <div className="p-4 bg-background-elevated border border-border">
-            bg-background-elevated
+          <div className="p-4 bg-surface-bg-overlay border border-border">
+            surface-bg-overlay
           </div>
+          <div className="p-4 bg-surface-bg-overlay-hover border border-border">
+            surface-bg-overlay-hover
+          </div>
+          <div className="p-4 bg-surface-bg-overlay border border-surface-border-focus">
+            surface-bg-overlay with surface-border-focus
+          </div>
+
         </div>
       </section>
 
@@ -66,6 +90,6 @@ export default function ThemePreview() {
           <div className="p-4 bg-highlight-pink">Highlight Pink</div>
         </div>
       </section>
-    </div>
+   </div>
   );
 }

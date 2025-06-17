@@ -3,8 +3,6 @@ import Slider from '@/components/Slider';
 import { parseRawText } from './utils';
 import { Document, Paragraph, Sentence, Word } from './types';
 
-// This file has been moved to features/text-view/TextViewPanel.tsx
-
 const SLIDER_STOPS = ['Word', 'Sentence', 'Paragraph'] as const;
 type SliderStop = typeof SLIDER_STOPS[number];
 
@@ -47,9 +45,9 @@ const TextViewPanel: React.FC = () => {
   }, [selected]);
 
   // Set up alternating colors for selected level. Transparent lines left (paragraph) or underneath (sentence and word) the elements.
-  let pStyle = sliderValue === 'Paragraph' ? 'border-l-2 odd:border-indigo-400 even:border-red-400' : '';
-  let sStyle = sliderValue === 'Sentence' ? 'odd:border-b-2 odd:border-indigo-400 even:border-b-1 even:border-red-400' : '';
-  let wStyle = sliderValue === 'Word' ? 'odd:border-b-2 odd:border-indigo-400 even:border-b-1 even:border-red-400' : '';
+  let pStyle = sliderValue === 'Paragraph' ? 'border-l-2 odd:border-neutral-fg-accent1 even:border-neutral-fg-accent2' : '';
+  let sStyle = sliderValue === 'Sentence' ? 'odd:border-b-2 odd:border-neutral-fg-accent1 even:border-b-1 even:border-neutral-fg-accent2' : '';
+  let wStyle = sliderValue === 'Word' ? 'odd:border-b-2 odd:border-neutral-fg-accent1 even:border-b-1 even:border-neutral-fg-accent2' : '';
 
   return (
     <div className="flex flex-row items-start h-full justify-center w-1/2 relative">
@@ -62,14 +60,14 @@ const TextViewPanel: React.FC = () => {
             <p
               key={p.id}
               id={p.id}
-              className={`${selected === p.id ? 'bg-yellow-200' : pStyle} my-2 p-2`}
+              className={`${selected === p.id ? 'bg-neutral-highlight' : pStyle} my-2 p-2`}
               onClick={() => sliderValue === 'Paragraph' ? setSelected(p.id) : null}
             >
               {p.sentences.map(s => (
                 <span
                   key={s.id}
                   id={s.id}
-                  className={selected === s.id ? 'bg-yellow-200' : sStyle}
+                  className={selected === s.id ? 'bg-neutral-highlight' : sStyle}
                   onClick={e => {
                     if (sliderValue === 'Sentence') setSelected(s.id);
                   }}
@@ -78,7 +76,7 @@ const TextViewPanel: React.FC = () => {
                     <span
                       key={w.id}
                       id={w.id}
-                      className={selected === w.id ? 'bg-yellow-200' : wStyle}
+                      className={selected === w.id ? 'bg-neutral-highlight' : wStyle}
                       onClick={e => {
                         if (sliderValue === 'Word') setSelected(w.id);
                       }}
@@ -92,14 +90,14 @@ const TextViewPanel: React.FC = () => {
           ))}
         </div>
         {/* Selected element display */}
-        <div className="w-full bg-gray-100 p-2 rounded min-h-[32px]">
+        <div className="w-full bg-surface-bg-base border-surface-border-base border-1 p-2 rounded min-h-[32px]">
           <strong>Selected:</strong> {selected ? document.elementMap[selected].text : <span className="text-gray-400">None</span>}
         </div>
       </div>
       {/* Floating comment */}
       {selected && commentPos && (
         <div
-          className="absolute left-full ml-4 bg-blue-100 border border-blue-300 rounded px-3 py-2 shadow"
+          className="absolute left-full ml-4 bg-surface-bg-overlay border border-surface-border-overlay rounded px-3 py-2"
           style={{ top: commentPos.top }}
         >
           sample comment
