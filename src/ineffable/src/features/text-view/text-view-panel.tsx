@@ -20,54 +20,91 @@ const TextViewPanel: React.FC = () => {
   const [sliderValue, setSliderValue] = useState<SliderStop>('Paragraph');
   // the id of the highlighted element
   const [selected, setSelected] = useState<string | null>(null);
+  const [commentPos, setCommentPos] = useState<{ top: number } | null>(null);
+  const textContainerRef = React.useRef<HTMLDivElement>(null);
 
   let document: Document = parseRawText(sampleText);
 
-  // Reset selected when sliderValue changes
+  // Reset selected and comment position when sliderValue changes
   React.useEffect(() => {
     setSelected(null);
+    setCommentPos(null);
   }, [sliderValue]);
 
-  return (
-    <div className="flex flex-col items-start h-full justify-center w-1/2">
-      {/* Slider */}
-      <Slider stops={SLIDER_STOPS} value={sliderValue} onChange={v => setSliderValue(v as SliderStop)} />
+  // When selected changes, update comment position
+  React.useEffect(() => {
+    if (!selected) {
+      setCommentPos(null);
+      return;
+    }
+    // Try to find the DOM node for the selected element
+    const el = window.document.getElementById(selected);
+    if (el && textContainerRef.current) {
+      const elRect = el.getBoundingClientRect();
+      const containerRect = textContainerRef.current.getBoundingClientRect();
+      setCommentPos({ top: elRect.top - containerRect.top });
+    }
+  }, [selected]);
 
-      {/* Highlighted selectable text */}
-      <div className="w-full mb-4 min-h-[120px]">
-        {document.paragraphs.map(p => (
+  // Set up alternating colors for selected level. Transparent lines left (paragraph) or underneath (sentence and word) the elements.
+  let pStyle = sliderValue === 'Paragraph' ? 'border-l-2 odd:border-indigo-400 even:border-red-400' : '';
+  let sStyle = sliderValue === 'Sentence' ? 'odd:border-b-2 odd:border-indigo-400 even:border-b-1 even:border-red-400' : '';
+  let wStyle = sliderValue === 'Word' ? 'odd:border-b-2 odd:border-indigo-400 even:border-b-1 even:border-red-400' : '';
+
+  return (
+    <div className="flex flex-row items-start h-full justify-center w-1/2 relative">
+      <div ref={textContainerRef} className="flex-1">
+        {/* Slider */}
+        <Slider stops={SLIDER_STOPS} value={sliderValue} onChange={v => setSliderValue(v as SliderStop)} />
+        {/* Highlighted selectable text */}
+        <div className="w-full mb-4 min-h-[120px]">
+          {document.paragraphs.map(p => (
             <p
-            key={p.id}
-            className={`${selected === p.id ? 'bg-yellow-200' : ''} my-2`}
-            onClick={() => sliderValue === 'Paragraph' ? setSelected(p.id) : null}
+              key={p.id}
+              id={p.id}
+              className={`${selected === p.id ? 'bg-yellow-200' : pStyle} my-2 p-2`}
+              onClick={() => sliderValue === 'Paragraph' ? setSelected(p.id) : null}
             >
-            {p.sentences.map(s => (
-              <span
-              key={s.id}
-              className={selected === s.id ? 'bg-yellow-200' : ''}
-              onClick={() => sliderValue === 'Sentence' ? setSelected(s.id) : null}
-              >
-              {s.words.map(w => (
+              {p.sentences.map(s => (
                 <span
-                key={w.id}
-                className={selected === w.id ? 'bg-yellow-200' : ''}
-                onClick={() => sliderValue === 'Word' ? setSelected(w.id) : null}
+                  key={s.id}
+                  id={s.id}
+                  className={selected === s.id ? 'bg-yellow-200' : sStyle}
+                  onClick={e => {
+                    if (sliderValue === 'Sentence') setSelected(s.id);
+                  }}
                 >
-                {w.text}{' '}
+                  {s.words.map(w => (
+                    <span
+                      key={w.id}
+                      id={w.id}
+                      className={selected === w.id ? 'bg-yellow-200' : wStyle}
+                      onClick={e => {
+                        if (sliderValue === 'Word') setSelected(w.id);
+                      }}
+                    >
+                      {w.text}{' '}
+                    </span>
+                  ))}
                 </span>
               ))}
-              </span>
-            ))}
             </p>
-        ))}
+          ))}
+        </div>
+        {/* Selected element display */}
+        <div className="w-full bg-gray-100 p-2 rounded min-h-[32px]">
+          <strong>Selected:</strong> {selected || <span className="text-gray-400">None</span>}
+        </div>
       </div>
-      {/* Selected element display */}
-      <div className="w-full bg-gray-100 p-2 rounded min-h-[32px]">
-        <strong>Selected:</strong> 
-        <span className="text-gray-400">
-          {selected ? document.elementMap[selected].text : "None"} 
-          </span>
-      </div>
+      {/* Floating comment */}
+      {selected && commentPos && (
+        <div
+          className="absolute left-full ml-4 bg-blue-100 border border-blue-300 rounded px-3 py-2 shadow"
+          style={{ top: commentPos.top }}
+        >
+          sample comment
+        </div>
+      )}
     </div>
   );
 };
