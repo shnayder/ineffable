@@ -7,7 +7,6 @@ interface DetailsPanelProps {
 }
 
 const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedId }) => {
-  // Use in child
   const document = useContext(DocumentContext);
 
   let annotations = document?.annotations?.[selectedId] || [];

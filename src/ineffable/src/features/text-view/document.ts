@@ -1,4 +1,4 @@
-import { Document, Paragraph, Sentence, Word } from "./types";
+import { Annotation, Document, Paragraph, Sentence, Word } from "./types";
 
 // TODO: I want more permanent ids that don't change if I add a word to a sentence. But not hashes, since the same word or sentence in different paragraphs should have different ids. ID service? or GUIDs?
 // For now, using simple incremental ids based on paragraph and sentence indices.
@@ -104,4 +104,8 @@ export function addMockAnnotations(document: Document): Document {
     }
   }
   return document;
+}
+
+export function getAnnotationsForId(doc: Document, id: string): Annotation[] {
+  return doc.annotations?.[id] ?? [];
 }

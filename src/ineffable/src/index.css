@@ -41,6 +41,19 @@ html, body, #root {
   --color-primary-fg-hover: var(--color-blue-600);  /* remove? Keep fg same for hover? */
   --color-primary-fg-active: var(--color-blue-800);
   --color-primary-fg-inactive: var(--color-blue-600);
+
+  /* Secondary — for less important controls */
+  --color-secondary-bg: var(--color-stone-100);
+  --color-secondary-bg-hover: var(--color-stone-200);
+  --color-secondary-bg-active: var(--color-stone-300);
+  
+  --color-secondary-fg: var(--color-stone-800);
+  --color-secondary-fg-hover: var(--color-stone-600);  /* remove? Keep fg same for hover? */
+  --color-secondary-fg-active: var(--color-stone-800);
+  --color-secondary-fg-inactive: var(--color-stone-600);
+  --color-secondary-border: var(--color-stone-400);
+  
+  
   
   /* Notice — for alerts, warnings, etc */
   --color-notice-bg: var(--color-yellow-100);
