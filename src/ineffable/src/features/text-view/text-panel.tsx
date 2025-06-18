@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { parseRawText } from './utils';
+import { parseRawText } from './document';
 import { Document, Paragraph, Sentence, Word } from './types';
-import { Comment } from './comment-card';
 
 interface TextPanelProps {
   sliderValue: 'Word' | 'Sentence' | 'Paragraph';

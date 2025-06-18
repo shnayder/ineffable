@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import Slider from '@/components/Slider';
-import { parseRawText } from './utils';
+import { addMockAnnotations, parseRawText } from './document';
 import { Document, Paragraph, Sentence, Word } from './types';
-import CommentCard, { Comment } from './comment-card';
 import DetailsPanel from './details-panel';
 import TextPanel from './text-panel';
 
@@ -17,12 +16,15 @@ const sampleText = [
   `The light flickered between the tall trunks and upper branches of the redwoods as he walked toward the tree where Paper the Squirrel lived.`,
 ];
 
+export const DocumentContext = React.createContext<Document | null>(null);
+
 const TextViewPanel: React.FC = () => {
   const [sliderValue, setSliderValue] = useState<SliderStop>('Paragraph');
   // the id of the highlighted element
   const [selected, setSelected] = useState<string | null>(null);
   
   let document: Document = parseRawText(sampleText);
+  document = addMockAnnotations(document);
 
   // Reset selected when sliderValue changes
   React.useEffect(() => {
@@ -30,16 +32,9 @@ const TextViewPanel: React.FC = () => {
   }, [sliderValue]);
 
 
-  // Example: comments for each element (replace with real data as needed)
-  const commentsMap: Record<string, Comment[]> = {
-    ...(selected ? { [selected]: [
-      { id: 'c1', text: 'Sample comment 1' },
-      { id: 'c2', text: 'Sample comment 2' },
-    ] } : {})
-  };
-  const comments = selected ? commentsMap[selected] || [] : [];
 
   return (
+    <DocumentContext.Provider value={document}>
     <div className="flex flex-col items-start h-full justify-center w-full p-4 bg-surface-bg-base border-surface-border-base border-1 rounded">
 
       <Slider stops={SLIDER_STOPS} value={sliderValue} onChange={v => setSliderValue(v as SliderStop)} />
@@ -55,9 +50,10 @@ const TextViewPanel: React.FC = () => {
           />
         </div>
 
-        <DetailsPanel comments={comments} selectedId={selected || ''} />
+        <DetailsPanel selectedId={selected || ''} />
       </div>
     </div>
+    </DocumentContext.Provider>
   );
 };
 
