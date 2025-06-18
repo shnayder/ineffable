@@ -42,6 +42,42 @@ html, body, #root {
   --color-primary-fg-active: var(--color-blue-800);
   --color-primary-fg-inactive: var(--color-blue-600);
   
+  /* Notice — for alerts, warnings, etc */
+  --color-notice-bg: var(--color-yellow-100);
+  --color-notice-bg-hover: var(--color-yellow-200);
+  --color-notice-bg-active: var(--color-yellow-300);
+  --color-notice-fg: var(--color-yellow-800);
+  --color-notice-fg-hover: var(--color-yellow-700);
+  --color-notice-fg-active: var(--color-yellow-900);
+  --color-notice-fg-inactive: var(--color-yellow-600);
+  
+  /* actionable — for critique, concerns, issues -- not danger */
+  --color-actionable-bg: var(--color-purple-100);
+  --color-actionable-bg-hover: var(--color-purple-200);
+  --color-actionable-bg-active: var(--color-purple-300);
+  --color-actionable-fg: var(--color-purple-800);
+  --color-actionable-fg-hover: var(--color-purple-700);
+  --color-actionable-fg-active: var(--color-purple-900);
+  --color-actionable-fg-inactive: var(--color-purple-600);
+  
+
+  /* Danger — for errors, critical actions */
+  --color-danger-bg: var(--color-red-100);
+  --color-danger-bg-hover: var(--color-red-200);
+  --color-danger-bg-active: var(--color-red-300);
+  --color-danger-fg: var(--color-red-800);
+  --color-danger-fg-hover: var(--color-red-700);
+  --color-danger-fg-active: var(--color-red-900);
+  --color-danger-fg-inactive: var(--color-red-600);
+  
+  /* Success — for success messages, confirmations */
+  --color-success-bg: var(--color-green-100);
+  --color-success-bg-hover: var(--color-green-200);
+  --color-success-bg-active: var(--color-green-300);
+  --color-success-fg: var(--color-green-800);
+  --color-success-fg-hover: var(--color-green-700);
+  --color-success-fg-active: var(--color-green-900);
+  --color-success-fg-inactive: var(--color-green-600);
 }
 
 
