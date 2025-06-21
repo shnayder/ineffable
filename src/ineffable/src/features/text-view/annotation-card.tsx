@@ -31,7 +31,7 @@ const AnnotationCard: React.FC<AnnotationCardProps> = ({ annotation }) => {
             {icons[annotation.kind] || '-'}
             </span>
 
-          {annotation.text}
+          {annotation.contents}
           </p>
     </div>
   );

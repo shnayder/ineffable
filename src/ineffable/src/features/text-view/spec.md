@@ -9,6 +9,9 @@ Start with some text.
     1. hint at existence of annotations in main view somehow -- icons, counts, colors? (done)
 1. Support multiple annotations on each element. For now dummy ones. They'll come from other components later. (done)
 1. Let user edit at word, sentence, paragraph level.
+    1. Keep full history of edits (as immer patches)
+    1. Persist in browser storage, with download button for backup for now
+1. Add comments to any element
 1. If editing sentence or paragraph, do a diff to avoid recreating lower-level elements that didn't actually change. 
 
 What gets stored? I can't just get raw text from backend — need to keep track of comments, etc. 

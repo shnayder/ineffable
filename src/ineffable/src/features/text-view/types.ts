@@ -1,35 +1,40 @@
 // Hierarchical structure of a document. For now, ignoring complex whitespace and including punctuation in words.
 
-export type Word = {
-  id: string; // e.g. "p0-s1-w2"
-  text: string; // the word itself
-};
+import { Id } from "@/utils/nanoid";
 
-export type Sentence = {
-  id: string; // e.g. "p0-s1"
-  text: string; // full sentence
-  words: Word[]; // its words
-};
+// Kinds of elements
+// For now, static, but could be user defined
+export type ElementKind = "document" | "paragraph" | "sentence" | "word";
 
-export type Paragraph = {
-  id: string; // e.g. "p0"
-  text: string; // full paragraph
-  sentences: Sentence[];
-};
+// Document Elements
+// Note: not insisting via type system that these are hierarchical, but they are
+export interface Element {
+  id: Id;
+  kind: ElementKind;
+  contents?: string; // for leaf nodes, this is the text content
+  childrenIds: Id[];
+  createdAt: Date; // timestamp of when the element was created
+  // No updated timestamps -> Elements are immutable
+}
 
 export type AnnotationKind = "critique" | "suggestion" | "question" | "comment";
 
-export type Annotation = {
-  id: string; // unique identifier for the annotation
-  kind: AnnotationKind; // type of annotation
-  text: string; // content of the annotation
-  targetId: string; // ID of the target element (paragraph, sentence, or word)
-  createdAt: Date; // timestamp of when the annotation was created
-  updatedAt?: Date; // optional timestamp for when the annotation was last updated
-};
+export type AnnotationStatus = "open" | "resolved" | "outdated";
 
-export type Document = {
-  paragraphs: Paragraph[];
-  elementMap: { [id: string]: Paragraph | Sentence | Word };
-  annotations?: { [id: string]: Annotation[] };
-};
+export interface Annotation {
+  id: Id;
+  targetId: Id; // Id of the target element (paragraph, sentence, or word)
+  kind: AnnotationKind;
+  contents: string;
+  createdAt: Date;
+  status: AnnotationStatus;
+}
+
+export interface DocumentVersion {
+  id: Id;
+  allElements: Element[];
+  annotations: Annotation[];
+  rootId: Id; // Id of the root Element, which should have kind "document"
+  version: number;
+  formatVersion: "1.0"; // Version of the document format
+}

@@ -1,15 +1,18 @@
 import React, { useContext } from 'react';
 import AnnotationCard from './annotation-card';
-import { DocumentContext } from './text-view-panel';
+import { useDocStore } from './document-store';
 
 interface DetailsPanelProps {
   selectedId: string;
 }
 
 const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedId }) => {
-  const document = useContext(DocumentContext);
+  const documentModel = useDocStore((state) => state.model);
 
-  let annotations = document?.annotations?.[selectedId] || [];
+  let annotations = documentModel?.getAnnotationsForElementId(selectedId);
+  if (!annotations) {
+    annotations = [];
+  }
 
   return (
     <div 
