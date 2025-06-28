@@ -98,12 +98,12 @@ export class DocumentModel {
     let newElementIds: Id[] = this._parseContentsToElements(
       newContents,
       oldElement.kind,
-      oldElement.childrenIds
+      oldElement.childrenIds,
     );
 
     if (newElementIds.length === 0) {
       throw new Error(
-        `No new elements created from contents for element with id ${origElementId}`
+        `No new elements created from contents for element with id ${origElementId}`,
       );
     }
     this._replaceElement(oldElement, newElementIds);
@@ -125,7 +125,7 @@ export class DocumentModel {
     let origElementId = origElement.id;
     if (origElement.kind === "document" && newElementIds.length > 1) {
       throw new Error(
-        `Cannot update document element with more than one new elements: got ${newElementIds.length}`
+        `Cannot update document element with more than one new elements: got ${newElementIds.length}`,
       );
     }
 
@@ -148,7 +148,7 @@ export class DocumentModel {
         origParentId = this.parentMap.get(origParentId);
         if (!origParentId) {
           throw new Error(
-            `Element with id ${origParentId} has no parent, cannot bubble up`
+            `Element with id ${origParentId} has no parent, cannot bubble up`,
           );
         }
         newParent = this._replaceParent(origParentId, [newParent.id]);
@@ -174,7 +174,7 @@ export class DocumentModel {
   _parseContentsToElements(
     contents: string,
     kind: Element["kind"],
-    originalChildrenIds: Id[]
+    originalChildrenIds: Id[],
   ): Id[] {
     // Implementation notes:
     // - for a word, simple enough: create a new Element with the new contents, add it to the store.
@@ -186,18 +186,17 @@ export class DocumentModel {
     // TODO: For now, ignoring originalChildrenIds, not doing any matching — works great for initial load, not for edits.
 
     let addElement = (
-      wordContents: string,
+      text: string,
       kind: ElementKind,
-      childrenIds: Id[] | undefined = undefined
+      childrenIds: Id[] | undefined = undefined,
     ): Id => {
-      // For words, simple: create a new element with the contents
-      if (contents.trim() === "") {
+      if (text.trim() === "") {
         throw new Error("Cannot create a word element with empty contents");
       }
       let element = {
         id: myNanoid(),
         kind,
-        contents,
+        contents: text,
         childrenIds: childrenIds ?? [],
         createdAt: new Date(),
       };
@@ -208,10 +207,13 @@ export class DocumentModel {
     };
 
     let addSentence = (sentenceContents: string): Id => {
-      // Split into words
-      const wordTexts = contents.split(/\s+/).filter(Boolean);
+      const wordTexts = sentenceContents.split(/\s+/).filter(Boolean);
       let childrenIds = wordTexts.map((word) => addElement(word, "word"));
-      let sentenceElement = addElement(contents, "sentence", childrenIds);
+      let sentenceElement = addElement(
+        sentenceContents,
+        "sentence",
+        childrenIds,
+      );
       // add parentMap entries for the new children
       childrenIds.forEach((cid) => {
         this.parentMap.set(cid, sentenceElement);
@@ -221,10 +223,15 @@ export class DocumentModel {
     };
 
     let addParagraph = (paragraphContents: string): Id => {
-      // Split into sentences
-      const sentenceTexts = contents.split(/(?<=[.!?])\s+/).filter(Boolean);
+      const sentenceTexts = paragraphContents
+        .split(/(?<=[.!?])\s+/)
+        .filter(Boolean);
       let childrenIds = sentenceTexts.map((sentence) => addSentence(sentence));
-      let paragraphElement = addElement(contents, "paragraph", childrenIds);
+      let paragraphElement = addElement(
+        paragraphContents,
+        "paragraph",
+        childrenIds,
+      );
       // add parentMap entries for the new children
       childrenIds.forEach((cid) => {
         this.parentMap.set(cid, paragraphElement);
@@ -234,15 +241,18 @@ export class DocumentModel {
     };
 
     let addDocument = (documentContents: string): Id => {
-      // Split into paragraphs
-      const paragraphTexts = contents
+      const paragraphTexts = documentContents
         .split(/\n\s*\n/)
         .filter((para) => para.trim() !== "")
         .filter(Boolean);
       let childrenIds = paragraphTexts.map((paragraph) =>
-        addParagraph(paragraph)
+        addParagraph(paragraph),
       );
-      let documentElement = addElement(contents, "document", childrenIds);
+      let documentElement = addElement(
+        documentContents,
+        "document",
+        childrenIds,
+      );
       // add parentMap entries for the new children
       childrenIds.forEach((cid) => {
         this.parentMap.set(cid, documentElement);
@@ -290,7 +300,7 @@ export class DocumentModel {
     // Create a new parent element with the updated child ids in place of the old child id in the parent's childrenIds.
 
     let newChildrenIds = oldParent.childrenIds.flatMap((cid) =>
-      cid === oldChildId ? newChildIds : [cid]
+      cid === oldChildId ? newChildIds : [cid],
     );
     let newParent = {
       ...oldParent,
