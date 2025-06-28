@@ -208,7 +208,11 @@ export class DocumentModel {
       // Split into words
       const wordTexts = sentenceContents.split(/\s+/).filter(Boolean);
       let childrenIds = wordTexts.map((word) => addElement(word, "word"));
-      let sentenceElement = addElement(sentenceContents, "sentence", childrenIds);
+      let sentenceElement = addElement(
+        sentenceContents,
+        "sentence",
+        childrenIds
+      );
       // add parentMap entries for the new children
       childrenIds.forEach((cid) => {
         this.parentMap.set(cid, sentenceElement);
@@ -245,7 +249,11 @@ export class DocumentModel {
       let childrenIds = paragraphTexts.map((paragraph) =>
         addParagraph(paragraph)
       );
-      let documentElement = addElement(documentContents, "document", childrenIds);
+      let documentElement = addElement(
+        documentContents,
+        "document",
+        childrenIds
+      );
       // add parentMap entries for the new children
       childrenIds.forEach((cid) => {
         this.parentMap.set(cid, documentElement);
@@ -315,8 +323,22 @@ export class DocumentModel {
   // do I want createSibling(sibId, before/after), or createChild(parent, index), or something else.
   // See what I need in the app.
 
+  /**
+   * Delete the element with the given id. Internally, creates a new version where this element is removed from the parent's childrenIds. The element will not be removed from the store, so it can still be accessed in previous versions.
+   *
+   * @param id Id of the element to delete. This should never be a document element, since we don't delete those.
+   * @throws Error if the element is a document or if the element does not exist.
+   * @returns nothing
+   */
   deleteElement(id: Id): void {
-    throw new Error("deleteElement not implemented yet.");
+    const el = this.getElement(id);
+    if (!el) {
+      throw new Error(`Element with id ${id} not found`);
+    }
+
+    // Replace with empty list to remove it from the parent's childrenIds.
+    // This will bubble up to the root element, creating a new version.
+    this._replaceElement(el, []);
   }
 
   // // write paths incrementally update caches + store
