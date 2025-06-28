@@ -17,24 +17,37 @@ export interface Element {
   // No updated timestamps -> Elements are immutable
 }
 
+export interface DocumentVersion {
+  id: Id;
+  rootId: Id; // Id of the root Element, which should have kind "document"
+  docVersionNumber: number;
+  formatVersion: "1.0"; // Version of the document format
+}
+
 export type AnnotationKind = "critique" | "suggestion" | "question" | "comment";
 
 export type AnnotationStatus = "open" | "resolved" | "outdated";
 
 export interface Annotation {
   id: Id;
-  targetId: Id; // Id of the target element (paragraph, sentence, or word)
+  // target of the annotation is saved in the ElementAnnotations table
+  // (this way we don't have to make a new annotation object when there's a new version of the element)
+  previousVersionId: Id; // if this is an edit of an existing annotation, point at the parent
   kind: AnnotationKind;
   contents: string;
-  createdAt: Date;
   status: AnnotationStatus;
+  createdAt: Date;
 }
 
-export interface DocumentVersion {
-  id: Id;
-  allElements: Element[];
-  annotations: Annotation[];
-  rootId: Id; // Id of the root Element, which should have kind "document"
-  version: number;
-  formatVersion: "1.0"; // Version of the document format
+// Mapping table between elements and annotations.
+// Validity managed based on documentVersion.
+// Mostly append-only. Exception: validThroughVersion starts null,
+// gets set when lifetime ends.
+export interface ElementAnnotation {
+  elementId: Id;
+  annotationId: Id;
+  validFromVersion: number;
+  // validThroughVersion starts null, gets set when validity limit is clear
+  // (when a new version of the annotation is created, or it's deleted)
+  validThroughVersion: number | null; // inclusive
 }

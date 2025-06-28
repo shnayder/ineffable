@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import Slider from '@/components/Slider';
-import { createDocumentModelFromText, DocumentModel } from './document';
+import { DocumentModel } from './document-model'
 import { DocumentVersion, Element, ElementKind } from './types';
 import DetailsPanel from './details-panel';
-import TextPanel from './text-panel';
+import DocumentPanel from './document-panel';
 import { useDocStore } from './document-store'; 
 
 type SliderStop = Exclude<ElementKind, 'document'>;
@@ -11,11 +11,14 @@ type SliderStop = Exclude<ElementKind, 'document'>;
 const SLIDER_STOPS: SliderStop[] = ['word', 'sentence', 'paragraph'];
 
 const sampleText = 
-  `Tarragon was bored. He had planned to play with his toy spaceship, but Ginny broke it yesterday. Ginny was a weasel. She had orange fur, a lot of energy, and was Tarragon's best friend of all time.
-The weather outside was absolutely perfect for space adventures under the tall redwoods. The sun had just risen over the hills in the distance, lighting up the scattered clouds. Taraggon had just finished his breakfast of scrumptious savory french toast with green herbs, shredded mozzarella, and snail sauce, and now he had nothing to do.
-“I need to find someone to play with”, said Tarragon to himself. “Let's see if Paper the Squirrel or Ginny want to have an adventure.”
-Tarragon put on his white astronaut's jacket with a spaceship logo on the left shoulder and yellow loops for attaching items during spacewalks. He took the space-shuttle bag he always had with him and walked outside, pushed closed the door behind him, and hurried off to look for Paper the squirrel.
-The light flickered between the tall trunks and upper branches of the redwoods as he walked toward the tree where Paper the Squirrel lived.`;
+  `Tarragon was bored`;
+  
+  
+//   . He had planned to play with his toy spaceship, but Ginny broke it yesterday. Ginny was a weasel. She had orange fur, a lot of energy, and was Tarragon's best friend of all time.
+// The weather outside was absolutely perfect for space adventures under the tall redwoods. The sun had just risen over the hills in the distance, lighting up the scattered clouds. Taraggon had just finished his breakfast of scrumptious savory french toast with green herbs, shredded mozzarella, and snail sauce, and now he had nothing to do.
+// “I need to find someone to play with”, said Tarragon to himself. “Let's see if Paper the Squirrel or Ginny want to have an adventure.”
+// Tarragon put on his white astronaut's jacket with a spaceship logo on the left shoulder and yellow loops for attaching items during spacewalks. He took the space-shuttle bag he always had with him and walked outside, pushed closed the door behind him, and hurried off to look for Paper the squirrel.
+// The light flickered between the tall trunks and upper branches of the redwoods as he walked toward the tree where Paper the Squirrel lived.`;
 
 const TextViewPanel: React.FC = () => {
   const [sliderValue, setSliderValue] = useState<SliderStop>('paragraph');
@@ -36,7 +39,7 @@ const TextViewPanel: React.FC = () => {
       <div className="flex flex-row items-start h-full justify-between relative">
         <div className="flex-1">
 
-          <TextPanel
+          <DocumentPanel
             sliderValue={sliderValue}
             onSelect={setSelected}
             selected={selected}

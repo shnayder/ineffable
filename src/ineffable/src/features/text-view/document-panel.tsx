@@ -1,9 +1,9 @@
 import React, { useContext, useState } from 'react';
 
-import { createDocumentModelFromText, createDocumentVersionFromText, DocumentModel } from './document';
 import { Annotation, DocumentVersion, Element, ElementKind } from './types';
 import { Id } from '@/utils/nanoid';
 import { useDocStore } from './document-store';
+import { docModel, useCurrentVersion, useElement } from './document-model';
 
 interface TextPanelProps {
   sliderValue: Exclude<ElementKind, 'document'>;
@@ -12,20 +12,21 @@ interface TextPanelProps {
   sampleText: string;
 }
 
-const TextPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, selected, sampleText }) => {
+const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, selected, sampleText }) => {
+  const currentVersion = useCurrentVersion();
+  const rootId = currentVersion?.rootId;
+  const rootElement = useElement(rootId);
 
   React.useEffect(() => {
-    const version: DocumentVersion = createDocumentVersionFromText(sampleText);
-    useDocStore.getState().load(version);
+    docModel.updateElement(rootId, sampleText);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const documentModel = useDocStore((state) => state.model);
-
+  
   // documentModel = addMockAnnotations(documentModel); // Update later
 
-  if (!documentModel) {
-      return <div className="w-full mb-4 min-h-[120px] max-w-prose">No text</div>;
-  }
+  // if (!documentModel) {
+  //     return <div className="w-full mb-4 min-h-[120px] max-w-prose">No text</div>;
+  // }
 
   const getParaClass = (id: Id) => {
     if (sliderValue !== 'paragraph') 
@@ -52,7 +53,7 @@ const TextPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, selected, 
   const isActiveLevel = (level: 'paragraph' | 'sentence' | 'word') => sliderValue === level;
 
   const getAnnotationCountElement = (id: Id) => {
-    const annotations: Annotation[] = documentModel.getAnnotationsForElementId(id); 
+    const annotations: Annotation[] = [] //documentModel.getAnnotationsForElementId(id); 
     if (annotations && annotations.length > 0) {
       return  <span className="inline-flex items-center justify-center text-xs font-semibold rounded-md bg-secondary-bg text-secondary-fg border border-secondary-border w-4 h-4 ml-1">
         {annotations.length}
@@ -63,42 +64,42 @@ const TextPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, selected, 
 
   return (
     <div className="w-full mb-4 min-h-[120px] max-w-prose">
-      {documentModel.getChildElements(documentModel.root.id).map((p) => (
+      {docModel.getElement(rootId)?.childrenIds.map((pId) => (
         <p
-          key={p.id}
-          id={p.id}
-          className={getParaClass(p.id)}
-          onClick={() => isActiveLevel('paragraph') && onSelect(p.id)}
+          key={pId}
+          id={pId}
+          className={getParaClass(pId)}
+          onClick={() => isActiveLevel('paragraph') && onSelect(pId)}
         >
-          {documentModel.getChildElements(p.id).map((s, sIdx) => (
+          {docModel.getElement(pId)?.childrenIds.map((sId, sIdx) => (
             <span
-              key={s.id}
-              id={s.id}
-              className={getSentenceClass(s.id)}
-              onClick={() => isActiveLevel('sentence') && onSelect(s.id)}
+              key={sId}
+              id={sId}
+              className={getSentenceClass(sId)}
+              onClick={() => isActiveLevel('sentence') && onSelect(sId)}
             >
-              {documentModel.getChildElements(s.id).map((w, wIdx) => (
-                <React.Fragment key={w.id}>
+              {docModel.getElement(sId)?.childrenIds.map((wId, wIdx) => (
+                <React.Fragment key={wId}>
                   <span
-                    id={w.id}
-                    className={getWordClass(w.id)}
-                    onClick={() => isActiveLevel('word') && onSelect(w.id)}
+                    id={wId}
+                    className={getWordClass(wId)}
+                    onClick={() => isActiveLevel('word') && onSelect(wId)}
                     >
-                  {w.contents}
-                  {isActiveLevel('word') && getAnnotationCountElement(w.id)}
+                  {docModel.getElement(wId)?.contents}
+                  {isActiveLevel('word') && getAnnotationCountElement(wId)}
                   </span>
-                  {wIdx < s.childrenIds.length - 1 && ' '}
+                  {wIdx < docModel.getElement(sId).childrenIds.length - 1 && ' '}
                 </React.Fragment>
               ))}
-              {isActiveLevel('sentence') && getAnnotationCountElement(s.id)}
-              {sIdx < p.childrenIds.length - 1 && ' '}
+              {isActiveLevel('sentence') && getAnnotationCountElement(sId)}
+              {sIdx < docModel.getElement(pId).childrenIds.length - 1 && ' '}
             </span>
           ))}
-          {isActiveLevel('paragraph') && getAnnotationCountElement(p.id)}
+          {isActiveLevel('paragraph') && getAnnotationCountElement(pId)}
         </p>
       ))}
     </div>
   );
 };
 
-export default TextPanel;
+export default DocumentPanel;
