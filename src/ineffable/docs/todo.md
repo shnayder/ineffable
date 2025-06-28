@@ -4,8 +4,8 @@ next: cleaning up state
 - make things run again without annotations
     + update types based on latest plan
     + update store
-    - update model
-    - update components
+    + update model
+    + update components
     - add tests
 - Allow doc edits:
     - change one word
@@ -27,5 +27,5 @@ next: cleaning up state
 - and then we can finally get to the best practices side of the house and then the first AI bits
 
 
-idea : some annotations can be elements in the tree, rather than attached to them. Or perhaps it's better to call it something else. Some sentences are "TODO: blah blah". Others are actual text. So it's a different kind of sentence, paragraph — a "real text" bit, or a multi-value type.
+idea (for later): add placeholder elements to the tree, or perhaps treat it as an element state — "a paragraph about the injustice of it all" that I plan to come back to and replace with actual text. 
 
