@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 
 import { Annotation, DocumentVersion, Element, ElementKind } from './types';
 import { Id } from '@/utils/nanoid';
@@ -17,6 +17,26 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
   const rootId = currentVersion?.rootId;
   const rootElement = useElement(rootId);
 
+  const [editingId, setEditingId] = useState<Id | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+
+  const selectForEdit = (id: Id) => {
+    onSelect(id);
+    setEditingId(id);
+    setEditingValue(docModel.getElement(id)?.contents ?? '');
+  };
+
+  const commitEdit = () => {
+    if (editingId) {
+      docModel.updateElement(editingId, editingValue);
+      setEditingId(null);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+
   React.useEffect(() => {
     docModel.updateElement(rootId, sampleText);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -29,24 +49,24 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
   // }
 
   const getParaClass = (id: Id) => {
-    if (sliderValue !== 'paragraph') 
+    if (sliderValue !== 'paragraph')
         return 'my-2 p-2';
-    return `my-2 p-2 ${selected === id 
-      ? 'bg-neutral-highlight' 
+    return `my-2 p-2 ${selected === id
+      ? 'border-2 border-yellow-400 rounded'
       : 'border-l-2 odd:border-neutral-fg-accent1 even:border-neutral-fg-accent2'}`;
   };
 
   const getSentenceClass = (id: Id) => {
     if (sliderValue !== 'sentence') return '';
     return selected === id
-      ? 'bg-neutral-highlight'
+      ? 'border-2 border-yellow-400 rounded'
       : 'odd:border-b-2 odd:border-neutral-fg-accent1 even:border-b-1 even:border-neutral-fg-accent2';
   };
 
   const getWordClass = (id: Id) => {
     if (sliderValue !== 'word') return '';
     return selected === id
-      ? 'bg-neutral-highlight'
+      ? 'border-2 border-yellow-400 rounded'
       : 'odd:border-b-2 odd:border-neutral-fg-accent1 even:border-b-1 even:border-neutral-fg-accent2';
   };
 
@@ -69,33 +89,78 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
           key={pId}
           id={pId}
           className={getParaClass(pId)}
-          onClick={() => isActiveLevel('paragraph') && onSelect(pId)}
+          onClick={() => isActiveLevel('paragraph') && selectForEdit(pId)}
         >
+          {editingId === pId ? (
+            <input
+              autoFocus
+              value={editingValue}
+              onChange={e => setEditingValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') commitEdit();
+                if (e.key === 'Escape') cancelEdit();
+              }}
+              className="border border-surface-border-base rounded px-1 w-full"
+            />
+          ) : (
+          <>
           {docModel.getElement(pId)?.childrenIds.map((sId, sIdx) => (
             <span
               key={sId}
               id={sId}
               className={getSentenceClass(sId)}
-              onClick={() => isActiveLevel('sentence') && onSelect(sId)}
+              onClick={() => isActiveLevel('sentence') && selectForEdit(sId)}
             >
+              {editingId === sId ? (
+                <input
+                  autoFocus
+                  value={editingValue}
+                  onChange={e => setEditingValue(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') commitEdit();
+                    if (e.key === 'Escape') cancelEdit();
+                  }}
+                  className="border border-surface-border-base rounded px-1 w-full"
+                />
+              ) : (
+                <>
               {docModel.getElement(sId)?.childrenIds.map((wId, wIdx) => (
-                <React.Fragment key={wId}>
-                  <span
-                    id={wId}
-                    className={getWordClass(wId)}
-                    onClick={() => isActiveLevel('word') && onSelect(wId)}
-                    >
-                  {docModel.getElement(wId)?.contents}
-                  {isActiveLevel('word') && getAnnotationCountElement(wId)}
+                  <React.Fragment key={wId}>
+                    <span
+                      id={wId}
+                      className={getWordClass(wId)}
+                      onClick={() => isActiveLevel('word') && selectForEdit(wId)}
+                      >
+                  {editingId === wId ? (
+                    <input
+                      autoFocus
+                      value={editingValue}
+                      onChange={e => setEditingValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') commitEdit();
+                        if (e.key === 'Escape') cancelEdit();
+                      }}
+                      className="border border-surface-border-base rounded px-1"
+                    />
+                  ) : (
+                    <>
+                      {docModel.getElement(wId)?.contents}
+                      {isActiveLevel('word') && getAnnotationCountElement(wId)}
+                    </>
+                  )}
                   </span>
                   {wIdx < docModel.getElement(sId).childrenIds.length - 1 && ' '}
                 </React.Fragment>
               ))}
               {isActiveLevel('sentence') && getAnnotationCountElement(sId)}
               {sIdx < docModel.getElement(pId).childrenIds.length - 1 && ' '}
+              </>
+              )}
             </span>
-          ))}
-          {isActiveLevel('paragraph') && getAnnotationCountElement(pId)}
+            ))}
+            {isActiveLevel('paragraph') && getAnnotationCountElement(pId)}
+          </>
+          )}
         </p>
       ))}
     </div>
