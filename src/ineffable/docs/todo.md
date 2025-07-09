@@ -9,7 +9,7 @@ next: cleaning up state
     - add tests
 - Allow doc edits:
     - change one word
-- set up react devtools
++ set up react devtools
  - check that changing word only rerenders its ancestors, not entire doc
         - fix as needed based on https://chatgpt.com/c/68542486-c028-8011-9044-2fc769faf28d?model=o4-mini — React.memo / PureComponent
 - Further edits
