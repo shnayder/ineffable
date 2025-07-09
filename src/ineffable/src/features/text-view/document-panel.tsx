@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { createElement, useState } from 'react';
 import { Annotation, Element, ElementKind } from './types';
 import { Id } from '@/utils/nanoid';
 import { docModel, useCurrentVersion, useElement } from './document-model';
@@ -71,9 +71,11 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
     return '';
   };
 
+
   interface DocumentElementProps {
     id: Id;
   }
+  
 
   const DocumentElement: React.FC<DocumentElementProps> = ({ id }) => {
     const el = useElement(id);
