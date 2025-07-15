@@ -13,6 +13,7 @@ const App = () => {
   return (
     <div className="app-container flex h-screen">
       <nav className="sidebar w-64 bg-surface-bg-base border-r p-12 flex flex-col">
+        <img src="/src/assets/ineffable-logo.svg" alt="Ineffable Logo" className="mb-6 w-48 h-24 mx-auto" />
         <h2 className="text-xl font-bold mb-6 text-neutral-fg">Navigation</h2>
         <ul className="flex flex-col gap-2">
           {NAV_ITEMS.map(item => (
