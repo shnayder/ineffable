@@ -205,7 +205,6 @@ export class DocumentModel {
     };
 
     let addSentence = (sentenceContents: string): Id => {
-      // Split into words
       const wordTexts = sentenceContents.split(/\s+/).filter(Boolean);
       let childrenIds = wordTexts.map((word) => addElement(word, "word"));
       let sentenceElement = addElement(
@@ -222,7 +221,6 @@ export class DocumentModel {
     };
 
     let addParagraph = (paragraphContents: string): Id => {
-      // Split into sentences
       const sentenceTexts = paragraphContents
         .split(/(?<=[.!?])\s+/)
         .filter(Boolean);
@@ -241,7 +239,6 @@ export class DocumentModel {
     };
 
     let addDocument = (documentContents: string): Id => {
-      // Split into paragraphs
       const paragraphTexts = documentContents
         .split(/\n\s*\n/)
         .filter((para) => para.trim() !== "")
