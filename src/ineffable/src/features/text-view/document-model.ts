@@ -7,11 +7,11 @@ import { getOrThrow } from "@/utils/maphelp";
 // --- DocumentModel: business logic, caching, parent relationships, immutable updates ---
 export class DocumentModel {
   // keep it public so we can access it in tests, but otherwise treat it as private.
-  _store: UseBoundStore<DocState>;
+  _store: typeof useDocStore;
   private parentMap = new Map<Id, Id>();
   // TODO: handle annotations
 
-  constructor(store: UseBoundStore<DocState> = useDocStore) {
+  constructor(store: typeof useDocStore = useDocStore) {
     this._store = store;
     // initial build
     this.rebuildCaches();
