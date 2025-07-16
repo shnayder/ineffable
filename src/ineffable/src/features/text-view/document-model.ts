@@ -64,7 +64,7 @@ export class DocumentModel {
    * element of kind "document".
    *
    * @returns the root element of the current document version.
-  */
+   */
   getRootElement(): Element {
     const state = this._store.getState();
     const curVer = state.currentVersionNumber;
@@ -85,7 +85,7 @@ export class DocumentModel {
    *
    * @param id
    * @returns
-  */
+   */
   getElement(id: Id): Element {
     const { getElement } = this._store.getState();
     const el = getElement(id);
@@ -167,6 +167,9 @@ export class DocumentModel {
         throw new Error(`Element with id ${origElementId} has no parent`);
       }
       let newParent = this._replaceParent(origElementId, newElementIds);
+      // console.log(
+      //   `Created new parent ${newParent.id} (${newParent.kind}) for old parent ${origParentId}`
+      // );
 
       while (newParent.kind !== "document") {
         // replace the original parent with the new parent
@@ -175,18 +178,18 @@ export class DocumentModel {
         //        console.log(`Created new parent ${newParent.id} (${newParent.kind})`);
 
         if (newParent.kind !== "document") {
-        // Go up one level — now we need to update oldParent's parent to point at new parent
-        origParentId = this.parentMap.get(origParentId);
-        if (!origParentId) {
-          throw new Error(
-            `Element with id ${origParentId} has no parent, cannot bubble up`
-          );
-        }
+          // Go up one level — now we need to update oldParent's parent to point at new parent
+          origParentId = this.parentMap.get(origParentId);
+          if (!origParentId) {
+            throw new Error(
+              `Element with id ${origParentId} has no parent, cannot bubble up`
+            );
+          }
         } // else we're done
-    }
+      }
 
-    // At this point, newParent should be the new root document element
-    // Add a new version with it as the root id.
+      // At this point, newParent should be the new root document element
+      // Add a new version with it as the root id.
       state.addVersion(newParent.id);
     }
   }
@@ -321,6 +324,11 @@ export class DocumentModel {
   // TODO: what about annotations?
   _replaceParent(oldChildId: Id, replacementChildIds: Id[]): Element {
     const oldParentId: Id = getOrThrow(this.parentMap, oldChildId);
+    // console.log(
+    //   `Replacing ${oldChildId} with [${replacementChildIds.join(
+    //     ", "
+    //   )}] in parent ${oldParentId}`
+    // );
     if (!oldParentId) {
       throw new Error(`Element with id ${oldChildId} has no parent`);
     }
@@ -329,11 +337,15 @@ export class DocumentModel {
       throw new Error(`Parent element with id ${oldParentId} not found`);
     }
     const { addElement } = this._store.getState();
-    // Create a new parent element with the updated child ids in place of the old child id in the parent's childrenIds.
 
+    // Create a new parent element with the updated child ids in place of the old child id in the parent's childrenIds.
     let newChildrenIds = oldParent.childrenIds.flatMap((cid) =>
       cid === oldChildId ? replacementChildIds : [cid]
     );
+
+    // console.log(`oldParent.childrenIds: ${oldParent.childrenIds}`);
+    // console.log(`newChildrenIds: ${newChildrenIds}`);
+
     let newParent = {
       ...oldParent,
       id: myNanoid(),
@@ -344,6 +356,7 @@ export class DocumentModel {
     addElement(newParent);
     // Update the parentMap for the new children
     newChildrenIds.forEach((cid) => {
+      // console.log(`Setting parentMap(${cid}) = ${newParent.id}`);
       this.parentMap.set(cid, newParent.id);
     });
     // Return the new parent element
@@ -365,6 +378,10 @@ export class DocumentModel {
     const el = this.getElement(id);
     if (!el) {
       throw new Error(`Element with id ${id} not found`);
+    }
+
+    if (el.kind === "document") {
+      throw new Error("Cannot delete document element");
     }
 
     // Replace with empty list to remove it from the parent's childrenIds.
@@ -401,6 +418,46 @@ export class DocumentModel {
   //     arr.map((a) => (a.id === id ? { ...a, status: "resolved" } : a))
   //   );
   // }
+
+  // Debugging utilities
+
+  checkInvariants(): void {
+    this.validateParentMap();
+  }
+
+  /**
+   * Check the parent map for inconsistencies. Log any inconsistencies found.
+   */
+  validateParentMap(): void {
+    // Go through every element in the document, check that its parent is correct
+    let check = (el: Element) => {
+      const children = el.childrenIds.map((id) => this.getElement(id));
+      for (const child of children) {
+        const parentId = this.parentMap.get(child.id);
+        if (parentId !== el.id) {
+          console.log(
+            `Inconsistency: parentMap(${child.id}) = ${parentId}, actual ${el.id}`
+          );
+        }
+        check(child); // recurse
+      }
+    };
+    const root = this.getRootElement();
+    check(root);
+  }
+
+  logDocStructure(): void {
+    const log = (el: Element, indent = 0) => {
+      console.log(
+        `${" ".repeat(indent)}${el.kind} ${el.id} ${
+          el.kind === "word" ? '"' + el.contents + '"' : ""
+        }`
+      );
+      el.childrenIds.forEach((id) => log(this.getElement(id), indent + 2));
+    };
+    const root = this.getRootElement();
+    log(root);
+  }
 }
 
 export const docModel = new DocumentModel(useDocStore);
