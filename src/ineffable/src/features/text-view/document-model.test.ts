@@ -1,31 +1,18 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { DocumentModel } from "./document-model";
-import { useDocStore } from "./document-store";
+import { createDocStore } from "./document-store";
 
 describe("DocumentModel", () => {
+  let store: ReturnType<typeof createDocStore>;
   let model: DocumentModel;
 
   beforeEach(() => {
-    // Reset the store before each test
-    const store = useDocStore.getState();
-    useDocStore.setState((state) => ({
-      ...state,
-      elements: {},
-      annotations: {},
-      elementAnnotations: [],
-      versions: {},
-      currentVersionNumber: null,
-      nextVersionNumber: 0,
-    }));
-    model = new DocumentModel();
-    // DEBUGGING: why is this logging 'null'? Is the setState running async?
-    console.log(
-      "DocumentModel initialized " + model._store.currentVersionNumber
-    );
+    store = createDocStore();
+    model = new DocumentModel(store);
   });
 
-  it.only("should initialize with empty store and create root element", () => {
-    expect(model._store.currentVersionNumber).not.toBeNull();
+  it("should initialize with empty store and create root element", () => {
+    expect(store.getState().currentVersionNumber).not.toBeNull();
     expect(model.getRootElement()).toBeDefined();
   });
 

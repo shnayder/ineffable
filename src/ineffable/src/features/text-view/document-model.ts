@@ -1,20 +1,22 @@
 import { Id, myNanoid } from "@/utils/nanoid";
-import { useDocStore } from "./document-store";
+import { useDocStore, type DocState } from "./document-store";
+import type { UseBoundStore } from "zustand";
 import { Annotation, Element, DocumentVersion, ElementKind } from "./types";
 import { getOrThrow } from "@/utils/maphelp";
 
 // --- DocumentModel: business logic, caching, parent relationships, immutable updates ---
 export class DocumentModel {
   // keep it public so we can access it in tests, but otherwise treat it as private.
-  _store = useDocStore.getState();
+  _store: typeof useDocStore;
   private parentMap = new Map<Id, Id>();
   // TODO: handle annotations
 
-  constructor() {
+  constructor(store: typeof useDocStore = useDocStore) {
+    this._store = store;
     // initial build
     this.rebuildCaches();
     // Ensure we have a current version and root element
-    if (this._store.currentVersionNumber == null) {
+    if (this._store.getState().currentVersionNumber == null) {
       console.log("Creating initial root element");
       const rootId = myNanoid();
       const rootElement: Element = {
@@ -24,18 +26,18 @@ export class DocumentModel {
         childrenIds: [],
         createdAt: new Date(),
       };
-      this._store.addElement(rootElement);
-      this._store.addVersion(rootId);
+      this._store.getState().addElement(rootElement);
+      this._store.getState().addVersion(rootId);
     }
   }
 
   private rebuildCaches() {
     // build parentMap via traversal from current root
     this.parentMap.clear();
-    const curVer = this._store.currentVersionNumber;
+    const curVer = this._store.getState().currentVersionNumber;
     if (curVer == null) return;
-    const rootId = this._store.versions[curVer].rootId;
-    const root = this._store.getElement(rootId);
+    const rootId = this._store.getState().versions[curVer].rootId;
+    const root = this._store.getState().getElement(rootId);
     if (!root) {
       return;
     }
@@ -46,7 +48,7 @@ export class DocumentModel {
 
   private walkAndMapParents(id: Id, parent: Id) {
     this.parentMap.set(id, parent);
-    const el = this._store.getElement(id);
+    const el = this._store.getState().getElement(id);
     if (!el) return;
     el.childrenIds.forEach((childId) => this.walkAndMapParents(childId, id));
   }
@@ -61,12 +63,12 @@ export class DocumentModel {
    * @returns the root element of the current document version.
    */
   getRootElement(): Element {
-    const curVer = this._store.currentVersionNumber;
+    const curVer = this._store.getState().currentVersionNumber;
     if (curVer == null) {
       throw new Error("No current version set");
     }
-    const rootId = this._store.versions[curVer].rootId;
-    const rootElement = this._store.getElement(rootId);
+    const rootId = this._store.getState().versions[curVer].rootId;
+    const rootElement = this._store.getState().getElement(rootId);
     if (!rootElement) {
       throw new Error(`Root element with id ${rootId} not found`);
     }
@@ -81,7 +83,7 @@ export class DocumentModel {
    * @returns
    */
   getElement(id: Id): Element {
-    const el = this._store.getElement(id);
+    const el = this._store.getState().getElement(id);
     if (!el) {
       throw new Error(`Element with id ${id} not found`);
     }
@@ -150,7 +152,7 @@ export class DocumentModel {
     if (origElement.kind === "document") {
       // Add a new version to the store, point at the new element.
       // (There must be exactly 1 — we checked above.)
-      this._store.addVersion(newElementIds[0]);
+      this._store.getState().addVersion(newElementIds[0]);
     } else {
       // bubble up the changes to the document level
       // TODO: handle annotations
@@ -173,7 +175,7 @@ export class DocumentModel {
 
       // At this point, newParent should be the new root document element
       // Add a new version with it as the root id.
-      this._store.addVersion(newParent.id);
+      this._store.getState().addVersion(newParent.id);
     }
   }
 
@@ -217,7 +219,7 @@ export class DocumentModel {
         childrenIds: childrenIds ?? [],
         createdAt: new Date(),
       };
-      this._store.addElement(element);
+      this._store.getState().addElement(element);
       return element.id;
     };
 
@@ -324,7 +326,7 @@ export class DocumentModel {
       createdAt: new Date(),
     };
     // Add the new parent to the store
-    this._store.addElement(newParent);
+    this._store.getState().addElement(newParent);
     // Update the parentMap for the new children
     newChildIds.forEach((cid) => {
       this.parentMap.set(cid, newParent.id);
@@ -386,7 +388,7 @@ export class DocumentModel {
   // }
 }
 
-export const docModel = new DocumentModel();
+export const docModel = new DocumentModel(useDocStore);
 
 // A wrapper hook for components to access element and be re-rendered when it changes.
 export function useElement(id: Id): Element {

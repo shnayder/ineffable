@@ -1,23 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useDocStore } from "./document-store";
+import { createDocStore } from "./document-store";
 import { myNanoid } from "@/utils/nanoid";
 
 // helper to reset store state while keeping methods
-function resetStore() {
-  useDocStore.setState((state) => ({
-    ...state,
-    elements: {},
-    annotations: {},
-    elementAnnotations: [],
-    versions: {},
-    currentVersionNumber: null,
-    nextVersionNumber: 1,
-  }));
-}
+let store: ReturnType<typeof createDocStore>;
 
 describe("DocStore", () => {
   beforeEach(() => {
-    resetStore();
+    store = createDocStore();
   });
 
   it("adds single and multiple elements", () => {
@@ -25,37 +15,37 @@ describe("DocStore", () => {
     const id2 = myNanoid();
     const id3 = myNanoid();
 
-    const returnedId = useDocStore.getState().addElement({
+    const returnedId = store.getState().addElement({
       id: id1,
       kind: "word",
       contents: "hi",
       childrenIds: [],
     });
     expect(returnedId).toBe(id1);
-    const el1 = useDocStore.getState().elements[id1];
+    const el1 = store.getState().elements[id1];
     expect(el1).toBeDefined();
     expect(el1.createdAt).toBeInstanceOf(Date);
 
-    const ids = useDocStore.getState().addElements([
+    const ids = store.getState().addElements([
       { id: id2, kind: "word", contents: "a", childrenIds: [] },
       { id: id3, kind: "word", contents: "b", childrenIds: [] },
     ]);
     expect(ids).toEqual([id2, id3]);
-    expect(Object.keys(useDocStore.getState().elements)).toHaveLength(3);
+    expect(Object.keys(store.getState().elements)).toHaveLength(3);
   });
 
   it("creates annotations with mapping", () => {
     const elId = myNanoid();
-    useDocStore.getState().addElement({
+    store.getState().addElement({
       id: elId,
       kind: "word",
       contents: "x",
       childrenIds: [],
     });
-    useDocStore.setState((s) => ({ ...s, currentVersionNumber: 2 }));
+    store.setState((s) => ({ ...s, currentVersionNumber: 2 }));
 
     const annId = myNanoid();
-    const ret = useDocStore
+    const ret = store
       .getState()
       .addAnnotation(
         {
@@ -68,9 +58,9 @@ describe("DocStore", () => {
         elId
       );
     expect(ret).toBe(annId);
-    const ann = useDocStore.getState().annotations[annId];
+    const ann = store.getState().annotations[annId];
     expect(ann).toBeDefined();
-    const mapping = useDocStore
+    const mapping = store
       .getState()
       .elementAnnotations.find(
         (ea) => ea.annotationId === annId && ea.elementId === elId
@@ -82,10 +72,10 @@ describe("DocStore", () => {
   it("updates annotation validity", () => {
     const eId = myNanoid();
     const aId = myNanoid();
-    useDocStore
+    store
       .getState()
       .addElement({ id: eId, kind: "word", contents: "y", childrenIds: [] });
-    useDocStore
+    store
       .getState()
       .addAnnotation(
         {
@@ -97,8 +87,8 @@ describe("DocStore", () => {
         },
         eId
       );
-    useDocStore.getState().updateElementAnnotationValidity(eId, aId, 5);
-    const mapping = useDocStore
+    store.getState().updateElementAnnotationValidity(eId, aId, 5);
+    const mapping = store
       .getState()
       .elementAnnotations.find(
         (ea) => ea.annotationId === aId && ea.elementId === eId
@@ -108,25 +98,25 @@ describe("DocStore", () => {
 
   it("manages versions", () => {
     const rootId = myNanoid();
-    const ver = useDocStore.getState().addVersion(rootId);
+    const ver = store.getState().addVersion(rootId);
     expect(ver).toBe(1);
-    expect(useDocStore.getState().currentVersionNumber).toBe(1);
-    expect(useDocStore.getState().versions[1].rootId).toBe(rootId);
-    expect(useDocStore.getState().nextVersionNumber).toBe(2);
+    expect(store.getState().currentVersionNumber).toBe(1);
+    expect(store.getState().versions[1].rootId).toBe(rootId);
+    expect(store.getState().nextVersionNumber).toBe(2);
 
     // Add another version
     const newRootId = myNanoid();
-    const newVer = useDocStore.getState().addVersion(newRootId);
+    const newVer = store.getState().addVersion(newRootId);
     expect(newVer).toBe(2);
-    expect(useDocStore.getState().currentVersionNumber).toBe(2);
-    expect(useDocStore.getState().versions[2].rootId).toBe(newRootId);
-    expect(useDocStore.getState().nextVersionNumber).toBe(3);
+    expect(store.getState().currentVersionNumber).toBe(2);
+    expect(store.getState().versions[2].rootId).toBe(newRootId);
+    expect(store.getState().nextVersionNumber).toBe(3);
 
     // Switch back to first version
-    useDocStore.getState().switchCurrentVersion(1);
-    expect(useDocStore.getState().currentVersionNumber).toBe(1);
-    expect(useDocStore.getState().versions[1].rootId).toBe(rootId);
+    store.getState().switchCurrentVersion(1);
+    expect(store.getState().currentVersionNumber).toBe(1);
+    expect(store.getState().versions[1].rootId).toBe(rootId);
 
-    expect(() => useDocStore.getState().switchCurrentVersion(99)).toThrow();
+    expect(() => store.getState().switchCurrentVersion(99)).toThrow();
   });
 });
