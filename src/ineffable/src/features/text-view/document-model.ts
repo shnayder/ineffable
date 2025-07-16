@@ -16,7 +16,8 @@ export class DocumentModel {
     // initial build
     this.rebuildCaches();
     // Ensure we have a current version and root element
-    if (this._store.getState().currentVersionNumber == null) {
+    const state = this._store.getState();
+    if (state.currentVersionNumber == null) {
       console.log("Creating initial root element");
       const rootId = myNanoid();
       const rootElement: Element = {
@@ -26,18 +27,19 @@ export class DocumentModel {
         childrenIds: [],
         createdAt: new Date(),
       };
-      this._store.getState().addElement(rootElement);
-      this._store.getState().addVersion(rootId);
+      state.addElement(rootElement);
+      state.addVersion(rootId);
     }
   }
 
   private rebuildCaches() {
     // build parentMap via traversal from current root
     this.parentMap.clear();
-    const curVer = this._store.getState().currentVersionNumber;
+    const state = this._store.getState();
+    const curVer = state.currentVersionNumber;
     if (curVer == null) return;
-    const rootId = this._store.getState().versions[curVer].rootId;
-    const root = this._store.getState().getElement(rootId);
+    const rootId = state.versions[curVer].rootId;
+    const root = state.getElement(rootId);
     if (!root) {
       return;
     }
@@ -48,7 +50,8 @@ export class DocumentModel {
 
   private walkAndMapParents(id: Id, parent: Id) {
     this.parentMap.set(id, parent);
-    const el = this._store.getState().getElement(id);
+    const { getElement } = this._store.getState();
+    const el = getElement(id);
     if (!el) return;
     el.childrenIds.forEach((childId) => this.walkAndMapParents(childId, id));
   }
@@ -61,14 +64,15 @@ export class DocumentModel {
    * element of kind "document".
    *
    * @returns the root element of the current document version.
-   */
+  */
   getRootElement(): Element {
-    const curVer = this._store.getState().currentVersionNumber;
+    const state = this._store.getState();
+    const curVer = state.currentVersionNumber;
     if (curVer == null) {
       throw new Error("No current version set");
     }
-    const rootId = this._store.getState().versions[curVer].rootId;
-    const rootElement = this._store.getState().getElement(rootId);
+    const rootId = state.versions[curVer].rootId;
+    const rootElement = state.getElement(rootId);
     if (!rootElement) {
       throw new Error(`Root element with id ${rootId} not found`);
     }
@@ -81,9 +85,10 @@ export class DocumentModel {
    *
    * @param id
    * @returns
-   */
+  */
   getElement(id: Id): Element {
-    const el = this._store.getState().getElement(id);
+    const { getElement } = this._store.getState();
+    const el = getElement(id);
     if (!el) {
       throw new Error(`Element with id ${id} not found`);
     }
@@ -141,6 +146,7 @@ export class DocumentModel {
    * @returns nothing
    */
   _replaceElement(origElement: Element, newElementIds: Id[]): void {
+    const state = this._store.getState();
     let origElementId = origElement.id;
     if (origElement.kind === "document" && newElementIds.length > 1) {
       throw new Error(
@@ -152,7 +158,7 @@ export class DocumentModel {
     if (origElement.kind === "document") {
       // Add a new version to the store, point at the new element.
       // (There must be exactly 1 — we checked above.)
-      this._store.getState().addVersion(newElementIds[0]);
+      state.addVersion(newElementIds[0]);
     } else {
       // bubble up the changes to the document level
       // TODO: handle annotations
@@ -170,12 +176,12 @@ export class DocumentModel {
             `Element with id ${origParentId} has no parent, cannot bubble up`
           );
         }
-        newParent = this._replaceParent(origParentId, [newParent.id]);
-      }
+      newParent = this._replaceParent(origParentId, [newParent.id]);
+    }
 
-      // At this point, newParent should be the new root document element
-      // Add a new version with it as the root id.
-      this._store.getState().addVersion(newParent.id);
+    // At this point, newParent should be the new root document element
+    // Add a new version with it as the root id.
+      state.addVersion(newParent.id);
     }
   }
 
@@ -204,7 +210,9 @@ export class DocumentModel {
 
     // TODO: For now, ignoring originalChildrenIds, not doing any matching — works great for initial load, not for edits.
 
-    let addElement = (
+    const { addElement } = this._store.getState();
+
+    let addElementFn = (
       text: string,
       kind: ElementKind,
       childrenIds: Id[] | undefined = undefined
@@ -219,14 +227,14 @@ export class DocumentModel {
         childrenIds: childrenIds ?? [],
         createdAt: new Date(),
       };
-      this._store.getState().addElement(element);
+      addElement(element);
       return element.id;
     };
 
     let addSentence = (sentenceContents: string): Id => {
       const wordTexts = sentenceContents.split(/\s+/).filter(Boolean);
-      let childrenIds = wordTexts.map((word) => addElement(word, "word"));
-      let sentenceElement = addElement(
+      let childrenIds = wordTexts.map((word) => addElementFn(word, "word"));
+      let sentenceElement = addElementFn(
         sentenceContents,
         "sentence",
         childrenIds
@@ -244,7 +252,7 @@ export class DocumentModel {
         .split(/(?<=[.!?])\s+/)
         .filter(Boolean);
       let childrenIds = sentenceTexts.map((sentence) => addSentence(sentence));
-      let paragraphElement = addElement(
+      let paragraphElement = addElementFn(
         paragraphContents,
         "paragraph",
         childrenIds
@@ -265,7 +273,7 @@ export class DocumentModel {
       let childrenIds = paragraphTexts.map((paragraph) =>
         addParagraph(paragraph)
       );
-      let documentElement = addElement(
+      let documentElement = addElementFn(
         documentContents,
         "document",
         childrenIds
@@ -280,7 +288,7 @@ export class DocumentModel {
 
     // For now, only handle words
     if (kind === "word") {
-      return [addElement(contents, "word")];
+      return [addElementFn(contents, "word")];
     } else if (kind === "sentence") {
       return [addSentence(contents)];
     } else if (kind === "paragraph") {
@@ -314,6 +322,7 @@ export class DocumentModel {
     if (!oldParent) {
       throw new Error(`Parent element with id ${oldParentId} not found`);
     }
+    const { addElement } = this._store.getState();
     // Create a new parent element with the updated child ids in place of the old child id in the parent's childrenIds.
 
     let newChildrenIds = oldParent.childrenIds.flatMap((cid) =>
@@ -326,7 +335,7 @@ export class DocumentModel {
       createdAt: new Date(),
     };
     // Add the new parent to the store
-    this._store.getState().addElement(newParent);
+    addElement(newParent);
     // Update the parentMap for the new children
     newChildIds.forEach((cid) => {
       this.parentMap.set(cid, newParent.id);
