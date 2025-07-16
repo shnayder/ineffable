@@ -55,16 +55,26 @@ describe("DocStore", () => {
     useDocStore.setState((s) => ({ ...s, currentVersionNumber: 2 }));
 
     const annId = myNanoid();
-    const ret = useDocStore.getState().addAnnotation(
-      { id: annId, previousVersionId: "", kind: "comment", contents: "c", status: "open" },
-      elId
-    );
+    const ret = useDocStore
+      .getState()
+      .addAnnotation(
+        {
+          id: annId,
+          previousVersionId: "",
+          kind: "comment",
+          contents: "c",
+          status: "open",
+        },
+        elId
+      );
     expect(ret).toBe(annId);
     const ann = useDocStore.getState().annotations[annId];
     expect(ann).toBeDefined();
-    const mapping = useDocStore.getState().elementAnnotations.find(
-      (ea) => ea.annotationId === annId && ea.elementId === elId
-    );
+    const mapping = useDocStore
+      .getState()
+      .elementAnnotations.find(
+        (ea) => ea.annotationId === annId && ea.elementId === elId
+      );
     expect(mapping).toBeDefined();
     expect(mapping!.validFromVersion).toBe(2);
   });
@@ -72,15 +82,27 @@ describe("DocStore", () => {
   it("updates annotation validity", () => {
     const eId = myNanoid();
     const aId = myNanoid();
-    useDocStore.getState().addElement({ id: eId, kind: "word", contents: "y", childrenIds: [] });
-    useDocStore.getState().addAnnotation(
-      { id: aId, previousVersionId: "", kind: "comment", contents: "c", status: "open" },
-      eId
-    );
+    useDocStore
+      .getState()
+      .addElement({ id: eId, kind: "word", contents: "y", childrenIds: [] });
+    useDocStore
+      .getState()
+      .addAnnotation(
+        {
+          id: aId,
+          previousVersionId: "",
+          kind: "comment",
+          contents: "c",
+          status: "open",
+        },
+        eId
+      );
     useDocStore.getState().updateElementAnnotationValidity(eId, aId, 5);
-    const mapping = useDocStore.getState().elementAnnotations.find(
-      (ea) => ea.annotationId === aId && ea.elementId === eId
-    );
+    const mapping = useDocStore
+      .getState()
+      .elementAnnotations.find(
+        (ea) => ea.annotationId === aId && ea.elementId === eId
+      );
     expect(mapping!.validThroughVersion).toBe(5);
   });
 
@@ -92,8 +114,19 @@ describe("DocStore", () => {
     expect(useDocStore.getState().versions[1].rootId).toBe(rootId);
     expect(useDocStore.getState().nextVersionNumber).toBe(2);
 
+    // Add another version
+    const newRootId = myNanoid();
+    const newVer = useDocStore.getState().addVersion(newRootId);
+    expect(newVer).toBe(2);
+    expect(useDocStore.getState().currentVersionNumber).toBe(2);
+    expect(useDocStore.getState().versions[2].rootId).toBe(newRootId);
+    expect(useDocStore.getState().nextVersionNumber).toBe(3);
+
+    // Switch back to first version
     useDocStore.getState().switchCurrentVersion(1);
     expect(useDocStore.getState().currentVersionNumber).toBe(1);
+    expect(useDocStore.getState().versions[1].rootId).toBe(rootId);
+
     expect(() => useDocStore.getState().switchCurrentVersion(99)).toThrow();
   });
 });

@@ -26,9 +26,6 @@ export class DocumentModel {
       };
       this._store.addElement(rootElement);
       this._store.addVersion(rootId);
-      this._store.currentVersionNumber = 0; // set to the first version
-
-      console.log(this._store.currentVersionNumber);
     }
   }
 
@@ -55,6 +52,26 @@ export class DocumentModel {
   }
 
   /* Read */
+
+  /**
+   *
+   * Get the root element of the current version. The model ensures that there is always a current version with a root
+   * element of kind "document".
+   *
+   * @returns the root element of the current document version.
+   */
+  getRootElement(): Element {
+    const curVer = this._store.currentVersionNumber;
+    if (curVer == null) {
+      throw new Error("No current version set");
+    }
+    const rootId = this._store.versions[curVer].rootId;
+    const rootElement = this._store.getElement(rootId);
+    if (!rootElement) {
+      throw new Error(`Root element with id ${rootId} not found`);
+    }
+    return rootElement;
+  }
 
   /**
    * Gets the element or throws — elements should never be deleted, so don't expect to get null.
@@ -164,8 +181,8 @@ export class DocumentModel {
    * Parses a string of text for an element into a list of new Element objects.
    *
    * - Insert new elements into the store.
-   * - For non-leaf elements, reuse existing children if they match the parsed contents closely enough. (Starting with
-   *   exact match.)
+   * - (TODO:) For non-leaf elements, reuse existing children if they match the parsed contents closely enough
+   *    (Starting with exact match.)
    * - Update the parentMap for new elements within the returned subtrees.
    * - Does _not_ insert the returned elements into the document tree — the caller must do that and update the parentMap based on those changes.
    *
