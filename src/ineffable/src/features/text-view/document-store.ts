@@ -25,8 +25,10 @@
  */
 
 import { create } from "zustand";
+import type { StateCreator } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { persist, devtools } from "zustand/middleware";
+import { persist, devtools, createJSONStorage } from "zustand/middleware";
+import type { StateStorage } from "zustand/middleware";
 import type { Id } from "@/utils/nanoid";
 import type { Draft } from "immer";
 import type {
@@ -37,7 +39,7 @@ import type {
 } from "./types";
 
 // --- Zustand Store Definition ---
-interface DocState {
+export interface DocState {
   // normalized raw data maps
   elements: Record<Id, Element>;
   annotations: Record<Id, Annotation>;
@@ -76,10 +78,7 @@ interface DocState {
   addVersion: (rootId: Id) => number;
 }
 
-export const useDocStore = create<DocState>()(
-  devtools(
-    persist(
-      immer((set, get) => ({
+const createState: StateCreator<DocState, [['zustand/immer', never]], [], DocState> = (set, get) => ({
         elements: {},
         annotations: {},
         elementAnnotations: [],
@@ -198,11 +197,35 @@ export const useDocStore = create<DocState>()(
           });
           return newVer!;
         },
-      })),
-      {
-        name: "document-store", // unique name for the storage
-        version: 1, // version of the store schema
-      }
+});
+
+function createMemoryStorage(): StateStorage {
+  const store: Record<string, string> = {};
+  return {
+    getItem: (name) => (name in store ? store[name] : null),
+    setItem: (name, value) => {
+      store[name] = value;
+    },
+    removeItem: (name) => {
+      delete store[name];
+    },
+  };
+}
+
+export function createDocStore(options: { storage?: StateStorage } = {}) {
+  const storage = options.storage ??
+    (typeof window === "undefined"
+      ? createMemoryStorage()
+      : window.localStorage);
+  return create<DocState>()(
+    devtools(
+      persist(immer(createState), {
+        name: "document-store",
+        version: 1,
+        storage: createJSONStorage(() => storage),
+      })
     )
-  )
-);
+  );
+}
+
+export const useDocStore = createDocStore();
