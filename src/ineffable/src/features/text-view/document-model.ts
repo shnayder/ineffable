@@ -169,6 +169,12 @@ export class DocumentModel {
       let newParent = this._replaceParent(origElementId, newElementIds);
 
       while (newParent.kind !== "document") {
+        // replace the original parent with the new parent
+        //        console.log(`replacing ${origParentId} with ${newParent.id}`);
+        newParent = this._replaceParent(origParentId, [newParent.id]);
+        //        console.log(`Created new parent ${newParent.id} (${newParent.kind})`);
+
+        if (newParent.kind !== "document") {
         // Go up one level — now we need to update oldParent's parent to point at new parent
         origParentId = this.parentMap.get(origParentId);
         if (!origParentId) {
@@ -176,7 +182,7 @@ export class DocumentModel {
             `Element with id ${origParentId} has no parent, cannot bubble up`
           );
         }
-      newParent = this._replaceParent(origParentId, [newParent.id]);
+        } // else we're done
     }
 
     // At this point, newParent should be the new root document element
@@ -313,7 +319,7 @@ export class DocumentModel {
   //
   // **Note: not recursive!** Caller will need to call again to update the parent's parent, until you reach the root element.
   // TODO: what about annotations?
-  _replaceParent(oldChildId: Id, newChildIds: Id[]): Element {
+  _replaceParent(oldChildId: Id, replacementChildIds: Id[]): Element {
     const oldParentId: Id = getOrThrow(this.parentMap, oldChildId);
     if (!oldParentId) {
       throw new Error(`Element with id ${oldChildId} has no parent`);
@@ -326,7 +332,7 @@ export class DocumentModel {
     // Create a new parent element with the updated child ids in place of the old child id in the parent's childrenIds.
 
     let newChildrenIds = oldParent.childrenIds.flatMap((cid) =>
-      cid === oldChildId ? newChildIds : [cid]
+      cid === oldChildId ? replacementChildIds : [cid]
     );
     let newParent = {
       ...oldParent,
@@ -337,7 +343,7 @@ export class DocumentModel {
     // Add the new parent to the store
     addElement(newParent);
     // Update the parentMap for the new children
-    newChildIds.forEach((cid) => {
+    newChildrenIds.forEach((cid) => {
       this.parentMap.set(cid, newParent.id);
     });
     // Return the new parent element
