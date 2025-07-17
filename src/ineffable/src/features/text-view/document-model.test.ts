@@ -25,7 +25,7 @@ describe("DocumentModel", () => {
   });
 
   it("parses a sentence into word elements", () => {
-    const ids = model._parseContentsToElements("Hello world", "sentence", []);
+    const ids = model._parseContentsToElements("Hello world", "sentence");
     expect(ids).toHaveLength(1);
     const sentence = model.getElement(ids[0]);
     expect(sentence.kind).toBe("sentence");
@@ -40,11 +40,7 @@ describe("DocumentModel", () => {
   });
 
   it("parses a document into paragraphs, sentences, and words", () => {
-    const ids = model._parseContentsToElements(
-      "A B.\n\nC D. E F.",
-      "document",
-      []
-    );
+    const ids = model._parseContentsToElements("A B.\n\nC D. E F.", "document");
     expect(ids).toHaveLength(1);
     const doc = model.getElement(ids[0]);
     expect(doc.kind).toBe("document");
@@ -256,5 +252,103 @@ describe("DocumentModel", () => {
     const sentEF = model.getElement(para2.childrenIds[1]);
     expect(model.computeFullContents(para2.id)).toBe("C D. E F.");
     expect(model.computeFullContents(sentEF.id)).toBe("E F.");
+  });
+
+  it("reuses existing words when adding new ones", () => {
+    const text = "A B.\n\nC D. E F.";
+    model.updateElement(model.getRootElement().id, text);
+    const root = model.getRootElement();
+    const para2 = model.getElement(root.childrenIds[1]);
+    const sentEF = model.getElement(para2.childrenIds[1]);
+    const wordE = model.getElement(sentEF.childrenIds[0]);
+    const wordF = model.getElement(sentEF.childrenIds[1]);
+
+    // Replace E with E X
+    model.updateElement(wordE.id, "E X");
+
+    // Check that we reused the element for E
+    const updatedRoot = model.getRootElement();
+    const updatedPara2 = model.getElement(updatedRoot.childrenIds[1]);
+    const updatedSentEXF = model.getElement(updatedPara2.childrenIds[1]);
+    const updatedWordE = model.getElement(updatedSentEXF.childrenIds[0]);
+    const updatedWordX = model.getElement(updatedSentEXF.childrenIds[1]);
+    const updatedWordF = model.getElement(updatedSentEXF.childrenIds[2]);
+    expect(updatedWordE.id).toEqual(wordE.id);
+    expect(updatedWordE.contents).toBe("E");
+    expect(updatedWordX.contents).toBe("X");
+    expect(updatedWordF.id).toEqual(wordF.id);
+    expect(updatedWordF.contents).toBe("F.");
+  });
+
+  it("reuses existing words only once", () => {
+    const text = "A B.\n\nC D. E F.";
+    model.updateElement(model.getRootElement().id, text);
+    const root = model.getRootElement();
+    const para2 = model.getElement(root.childrenIds[1]);
+    const sentEF = model.getElement(para2.childrenIds[1]);
+    const wordE = model.getElement(sentEF.childrenIds[0]);
+    const wordF = model.getElement(sentEF.childrenIds[1]);
+
+    // Replace E with E E E
+    model.updateElement(wordE.id, "E E E");
+
+    // Check that we reused the element for the first E, but not the others
+    const updatedRoot = model.getRootElement();
+    const updatedPara2 = model.getElement(updatedRoot.childrenIds[1]);
+    const updatedSentEEEF = model.getElement(updatedPara2.childrenIds[1]);
+    const updatedWordE = model.getElement(updatedSentEEEF.childrenIds[0]);
+    const updatedWordE2 = model.getElement(updatedSentEEEF.childrenIds[1]);
+    const updatedWordE3 = model.getElement(updatedSentEEEF.childrenIds[2]);
+    const updatedWordF = model.getElement(updatedSentEEEF.childrenIds[3]);
+
+    expect(updatedWordE.id).toEqual(wordE.id);
+    expect(updatedWordE.contents).toBe("E");
+
+    expect(updatedWordE2.id).not.toEqual(wordE.id);
+    expect(updatedWordE2.contents).toBe("E");
+    expect(updatedWordE3.id).not.toEqual(wordE.id);
+    expect(updatedWordE3.contents).toBe("E");
+    expect(updatedWordF.id).toEqual(wordF.id);
+    expect(updatedWordF.contents).toBe("F.");
+  });
+
+  it("reuses existing sentences when adding new ones", () => {
+    const text = "A B.\n\nC D. E F.";
+    model.updateElement(model.getRootElement().id, text);
+    const root = model.getRootElement();
+    const para2 = model.getElement(root.childrenIds[1]);
+    const sentEF = model.getElement(para2.childrenIds[1]);
+
+    // Replace E F. with E F. X Y.
+    model.updateElement(sentEF.id, "E F. X Y.");
+
+    // Check that we reused the element for E F.
+    const updatedRoot = model.getRootElement();
+    const updatedPara2 = model.getElement(updatedRoot.childrenIds[1]);
+    const updatedSentEF = model.getElement(updatedPara2.childrenIds[1]);
+    expect(updatedSentEF.id).toEqual(sentEF.id);
+  });
+
+  it("reuses existing words editing sentence", () => {
+    const text = "A B.\n\nC D. E F.";
+    model.updateElement(model.getRootElement().id, text);
+    const root = model.getRootElement();
+    const para2 = model.getElement(root.childrenIds[1]);
+    const sentEF = model.getElement(para2.childrenIds[1]);
+    const wordE = model.getElement(sentEF.childrenIds[0]);
+    const wordF = model.getElement(sentEF.childrenIds[1]);
+
+    // Replace E F with E X.
+    model.updateElement(sentEF.id, "E X.");
+
+    // Check that we reused the element for E
+    const updatedRoot = model.getRootElement();
+    const updatedPara2 = model.getElement(updatedRoot.childrenIds[1]);
+    const updatedSentEX = model.getElement(updatedPara2.childrenIds[1]);
+    const updatedWordE = model.getElement(updatedSentEX.childrenIds[0]);
+    const updatedWordX = model.getElement(updatedSentEX.childrenIds[1]);
+    expect(updatedWordE.id).toEqual(wordE.id);
+    expect(updatedWordE.contents).toBe("E");
+    expect(updatedWordX.contents).toBe("X");
   });
 });

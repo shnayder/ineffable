@@ -131,7 +131,7 @@ export class DocumentModel {
     let newElementIds: Id[] = this._parseContentsToElements(
       newContents,
       oldElement.kind,
-      oldElement.childrenIds
+      oldElement.id
     );
 
     if (newElementIds.length === 0) {
@@ -204,6 +204,30 @@ export class DocumentModel {
   }
 
   /**
+   * Helper to split a contents string into multiple elements of the specified kind.
+   *   - for a word, split by whitespace.
+   *   - for a sentence, split by punctuation and whitespace.
+   *   - for a paragraph, split by double newlines.
+   */
+  _splitContents = (text: string, kind: ElementKind): string[] => {
+    switch (kind) {
+      case "word":
+        return text.split(/\s+/).filter(Boolean);
+      case "sentence":
+        return text.split(/(?<=[.!?])\s+/).filter(Boolean);
+      case "paragraph":
+        return text
+          .split(/\n\s*\n/)
+          .filter((para) => para.trim() !== "")
+          .filter(Boolean);
+      case "document":
+        return [text]; // Documents are not split further at this level
+      default:
+        throw new Error(`Unknown element kind: ${kind}`);
+    }
+  };
+
+  /**
    * Parses a string of text for an element into a list of new Element objects.
    *
    * - Insert new elements into the store.
@@ -211,53 +235,52 @@ export class DocumentModel {
    *    (Starting with exact match.)
    * - Update the parentMap for new elements within the returned subtrees.
    * - Does _not_ insert the returned elements into the document tree — the caller must do that and update the parentMap based on those changes.
+   * - Note: contents may contain more than one element of the specified kind. So e.g. we may get "A B" and
+   *   kind="word", and should return two new word elements.
+   *
+   * @param previousId If provided, this is the element that we're replacing. It or its children can be reused if they match.
    *
    * @returns An array of Ids of the new elements created from the contents.
    */
   _parseContentsToElements(
     contents: string,
     kind: Element["kind"],
-    originalChildrenIds: Id[]
+    previousId?: Id
   ): Id[] {
-    // Implementation notes:
-    // - split contents into sub-elements based on kind.
-    //   - for a word, split by whitespace.
-    //   - for a sentence, split by punctuation and whitespace.
-    //   - for a paragraph, split by double newlines.
-    // - note: contents may contain more than one element of the specified kind. So e.g. we may get "A B" and
-    //   kind="word", and should return two new word elements.
+    const contentParts = this._splitContents(contents, kind);
 
-    // split the contents into multiple elements of the specified kind
-    const splitContents = (text: string, kind: ElementKind): string[] => {
-      switch (kind) {
-        case "word":
-          return text.split(/\s+/).filter(Boolean);
-        case "sentence":
-          return text.split(/(?<=[.!?])\s+/).filter(Boolean);
-        case "paragraph":
-          return text
-            .split(/\n\s*\n/)
-            .filter((para) => para.trim() !== "")
-            .filter(Boolean);
-        case "document":
-          return [text]; // Documents are not split further at this level
-        default:
-          throw new Error(`Unknown element kind: ${kind}`);
-      }
-    };
+    // Get the original children ids from the parent if provided
+    let prevChildrenIds: Id[] = [];
+    let prevFullContents: string | undefined;
+    if (previousId) {
+      const el = this.getElement(previousId);
+      prevChildrenIds = el.childrenIds;
+      prevFullContents = this.computeFullContents(previousId);
+    }
 
-    // Split the input content into multiple parts if needed
-    const contentParts = splitContents(contents, kind);
+    // Make a map of original children contents to their Ids
+    // This will be used to check for matches when creating new elements.
+    const prevChildContents = new Map(
+      prevChildrenIds.map((id) => [this.computeFullContents(id), id])
+    );
 
     // If we have multiple parts, create multiple elements
     if (contentParts.length > 1) {
       return contentParts
-        .map((part) => this._parseContentsToElements(part, kind, []))
+        .map((part) => {
+          // Check if the part matches the original contents
+          // TODO: bug - can only reuse a part once.
+          if (previousId && prevFullContents && part == prevFullContents) {
+            // If it matches, reuse the existing element
+            return [previousId];
+          }
+          // Otherwise, create a new element for this part
+          return this._parseContentsToElements(part, kind);
+        })
         .flat();
     }
 
     // Single part - proceed with original logic
-    // TODO: For now, ignoring originalChildrenIds, not doing any matching — works great for initial load, not for edits.
 
     const { addElement } = this._store.getState();
 
@@ -281,7 +304,7 @@ export class DocumentModel {
     };
 
     let addSentence = (sentenceContents: string): Id => {
-      const wordTexts = splitContents(sentenceContents, "word");
+      const wordTexts = this._splitContents(sentenceContents, "word");
       let childrenIds = wordTexts.map((word) => addElementFn(word, "word"));
       let sentenceElement = addElementFn(
         sentenceContents,
@@ -297,7 +320,7 @@ export class DocumentModel {
     };
 
     let addParagraph = (paragraphContents: string): Id => {
-      const sentenceTexts = splitContents(paragraphContents, "sentence");
+      const sentenceTexts = this._splitContents(paragraphContents, "sentence");
       let childrenIds = sentenceTexts.map((sentence) => addSentence(sentence));
       let paragraphElement = addElementFn(
         paragraphContents,
@@ -313,7 +336,7 @@ export class DocumentModel {
     };
 
     let addDocument = (documentContents: string): Id => {
-      const paragraphTexts = splitContents(documentContents, "paragraph");
+      const paragraphTexts = this._splitContents(documentContents, "paragraph");
       let childrenIds = paragraphTexts.map((paragraph) =>
         addParagraph(paragraph)
       );

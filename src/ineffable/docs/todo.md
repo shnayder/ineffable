@@ -19,6 +19,7 @@ next: cleaning up state
 + fix storage so it actually persists (don't overwrite with sample text every time)
 - check that changing word only rerenders its ancestors, not entire doc
    - fix as needed based on https://chatgpt.com/c/68542486-c028-8011-9044-2fc769faf28d?model=o4-mini — React.memo / PureComponent
+- reuse unchanged child elements when editing mid-tree nodes
 - Further edits
     + add a word
     - remove a word
@@ -29,7 +30,6 @@ next: cleaning up state
     - delete a sentence
     - change a paragraph — should "just work" based on sentences if I do it right
     - add a paragraph
-- reuse unchanged child elements when editing mid-tree nodes
 - add time travel slider -- keep things read-only at first
 - select vs edit gestures -- click to select, double-click or hit enter to edit?
 
