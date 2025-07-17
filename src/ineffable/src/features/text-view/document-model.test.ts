@@ -152,4 +152,86 @@ describe("DocumentModel", () => {
     expect(updatedWordF.id).toEqual(wordF.id);
     expect(updatedWordF.contents).toBe("F.");
   });
+
+  it("replace one word with two", () => {
+    model.updateElement(model.getRootElement().id, "A B.\n\nC D. E F.");
+
+    // get the new root
+    const root = model.getRootElement();
+
+    // get our hands on the E
+    const para2 = model.getElement(root.childrenIds[1]);
+    const sentenceEF = model.getElement(para2.childrenIds[1]);
+    const wordE = model.getElement(sentenceEF.childrenIds[0]);
+
+    model.updateElement(wordE.id, "X Y");
+
+    // check that there are now three words in the second sentence of the second paragraph
+    const updatedRoot = model.getRootElement();
+    expect(updatedRoot.id).not.toEqual(root.id);
+    expect(updatedRoot.childrenIds.length).toBe(2);
+    const updatedPara2 = model.getElement(updatedRoot.childrenIds[1]);
+    expect(updatedPara2.id).not.toEqual(para2.id);
+    expect(updatedPara2.childrenIds.length).toBe(2);
+    const updatedSentenceXYF = model.getElement(updatedPara2.childrenIds[1]);
+    expect(updatedSentenceXYF.id).not.toEqual(sentenceEF.id);
+    expect(updatedSentenceXYF.childrenIds.length).toBe(3);
+    const updatedWordX = model.getElement(updatedSentenceXYF.childrenIds[0]);
+    expect(updatedWordX.id).not.toEqual(wordE.id);
+    expect(updatedWordX.contents).toBe("X");
+    const updatedWordY = model.getElement(updatedSentenceXYF.childrenIds[1]);
+    expect(updatedWordY.id).not.toEqual(wordE.id);
+    expect(updatedWordY.contents).toBe("Y");
+    const updatedWordF = model.getElement(updatedSentenceXYF.childrenIds[2]);
+    expect(updatedWordF.contents).toBe("F.");
+  });
+
+  it("replace one sentence with two", () => {
+    model.updateElement(model.getRootElement().id, "A B.\n\nC D. E F.");
+
+    // get the new root
+    const root = model.getRootElement();
+
+    // get our hands on the C D.
+    const para2 = model.getElement(root.childrenIds[1]);
+    const sentenceCD = model.getElement(para2.childrenIds[0]);
+    const sentenceEF = model.getElement(para2.childrenIds[1]);
+
+    model.updateElement(sentenceCD.id, "X Y. Z W.");
+
+    // check that there are now three sentences in the second paragraph
+    const updatedRoot = model.getRootElement();
+    expect(updatedRoot.childrenIds.length).toBe(2);
+    const updatedPara2 = model.getElement(updatedRoot.childrenIds[1]);
+    expect(updatedPara2.id).not.toEqual(para2.id);
+    expect(updatedPara2.childrenIds.length).toBe(3);
+    const updatedSentenceXY = model.getElement(updatedPara2.childrenIds[0]);
+    expect(updatedSentenceXY.childrenIds.length).toBe(2);
+    const updatedSentenceZW = model.getElement(updatedPara2.childrenIds[1]);
+    expect(updatedSentenceZW.childrenIds.length).toBe(2);
+    const updatedSentenceEF = model.getElement(updatedPara2.childrenIds[2]);
+    expect(updatedSentenceEF.id).toEqual(sentenceEF.id);
+  });
+
+  it("replace one paragraph with two", () => {
+    model.updateElement(model.getRootElement().id, "A B.\n\nC D. E F.");
+
+    // get the new root
+    const root = model.getRootElement();
+
+    const para1 = model.getElement(root.childrenIds[0]);
+    const para2 = model.getElement(root.childrenIds[1]);
+
+    model.updateElement(para2.id, "X Y.\n\nZ W.");
+
+    // check that there are now three paragraphs in the document
+    const updatedRoot = model.getRootElement();
+    expect(updatedRoot.childrenIds.length).toBe(3);
+    const updatedPara1 = model.getElement(updatedRoot.childrenIds[0]);
+    expect(updatedPara1.id).toEqual(para1.id);
+    const updatedParaXY = model.getElement(updatedRoot.childrenIds[1]);
+    expect(updatedParaXY.childrenIds.length).toBe(1);
+    const updatedParaZW = model.getElement(updatedRoot.childrenIds[2]);
+    expect(updatedParaZW.childrenIds.length).toBe(1);
+  });
 });

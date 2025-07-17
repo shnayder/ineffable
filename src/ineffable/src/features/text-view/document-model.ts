@@ -211,12 +211,43 @@ export class DocumentModel {
     originalChildrenIds: Id[]
   ): Id[] {
     // Implementation notes:
-    // - for a word, simple enough: create a new Element with the new contents, add it to the store.
-    // - for a sentence: Split contents into words, and loop through to make a list of children. If there's a matching word among the original children, use that id. If not, make a new word Element. Then create a new sentence Element with the new list of children.
-    // - for a paragraph or document. Can do same logic if only looking one level down. So if editing a paragraph, only sentences that didn't change at all would be reused.
+    // - split contents into sub-elements based on kind.
+    //   - for a word, split by whitespace.
+    //   - for a sentence, split by punctuation and whitespace.
+    //   - for a paragraph, split by double newlines.
+    // - note: contents may contain more than one element of the specified kind. So e.g. we may get "A B" and
+    //   kind="word", and should return two new word elements.
 
-    // - TODO for impact of this on annotations —- if I add a comma to a sentence, would be nice to keep annotations on that sentence. Same for words. Would handle that by doing recursive updates, so we'd create a new version of the existing element rather than a completely new one. (Presuming that we have a way to keep annotations as we make new versions of elements)
+    // split the contents into multiple elements of the specified kind
+    const splitContents = (text: string, kind: ElementKind): string[] => {
+      switch (kind) {
+        case "word":
+          return text.split(/\s+/).filter(Boolean);
+        case "sentence":
+          return text.split(/(?<=[.!?])\s+/).filter(Boolean);
+        case "paragraph":
+          return text
+            .split(/\n\s*\n/)
+            .filter((para) => para.trim() !== "")
+            .filter(Boolean);
+        case "document":
+          return [text]; // Documents are not split further at this level
+        default:
+          throw new Error(`Unknown element kind: ${kind}`);
+      }
+    };
 
+    // Split the input content into multiple parts if needed
+    const contentParts = splitContents(contents, kind);
+
+    // If we have multiple parts, create multiple elements
+    if (contentParts.length > 1) {
+      return contentParts
+        .map((part) => this._parseContentsToElements(part, kind, []))
+        .flat();
+    }
+
+    // Single part - proceed with original logic
     // TODO: For now, ignoring originalChildrenIds, not doing any matching — works great for initial load, not for edits.
 
     const { addElement } = this._store.getState();
@@ -241,7 +272,7 @@ export class DocumentModel {
     };
 
     let addSentence = (sentenceContents: string): Id => {
-      const wordTexts = sentenceContents.split(/\s+/).filter(Boolean);
+      const wordTexts = splitContents(sentenceContents, "word");
       let childrenIds = wordTexts.map((word) => addElementFn(word, "word"));
       let sentenceElement = addElementFn(
         sentenceContents,
@@ -257,9 +288,7 @@ export class DocumentModel {
     };
 
     let addParagraph = (paragraphContents: string): Id => {
-      const sentenceTexts = paragraphContents
-        .split(/(?<=[.!?])\s+/)
-        .filter(Boolean);
+      const sentenceTexts = splitContents(paragraphContents, "sentence");
       let childrenIds = sentenceTexts.map((sentence) => addSentence(sentence));
       let paragraphElement = addElementFn(
         paragraphContents,
@@ -275,10 +304,7 @@ export class DocumentModel {
     };
 
     let addDocument = (documentContents: string): Id => {
-      const paragraphTexts = documentContents
-        .split(/\n\s*\n/)
-        .filter((para) => para.trim() !== "")
-        .filter(Boolean);
+      const paragraphTexts = splitContents(documentContents, "paragraph");
       let childrenIds = paragraphTexts.map((paragraph) =>
         addParagraph(paragraph)
       );
@@ -295,7 +321,6 @@ export class DocumentModel {
       return documentElement;
     };
 
-    // For now, only handle words
     if (kind === "word") {
       return [addElementFn(contents, "word")];
     } else if (kind === "sentence") {
@@ -309,19 +334,20 @@ export class DocumentModel {
     }
   }
 
-  // We've created one or more new elements to replace an existing one, and need to update the parent. This function handles one level of that.
-  //
-  // Take the id of the original child and a list of new child ids. Both must already exist in the store.
-  // TODO: check about annotation-related invariants when I add those.
-  // What it does:
-  // - Find the parent of the original child.
-  // - Make a new parent element with the updated children, add it to the store.
-  // - Update the parentMap to point the new child ids to the new parent.
-
-  // Returns the new parent Element.
-  //
-  // **Note: not recursive!** Caller will need to call again to update the parent's parent, until you reach the root element.
-  // TODO: what about annotations?
+  /**
+   * We've created one or more new elements to replace an existing one, and need to update the parent. This function handles one level of that.
+   *
+   * Take the id of the original child and a list of new child ids. Both must already exist in the store.
+   * TODO: check about annotation-related invariants when I add those.
+   * What it does:
+   * - Find the parent of the original child.
+   * - Make a new parent element with the updated children, add it to the store.
+   * - Update the parentMap to point the new child ids to the new parent.
+   * @returns the new parent Element.
+   *
+   * **Note: not recursive!** Caller will need to call again to update the parent's parent, until you reach the root element.
+   * TODO: what about annotations?
+   */
   _replaceParent(oldChildId: Id, replacementChildIds: Id[]): Element {
     const oldParentId: Id = getOrThrow(this.parentMap, oldChildId);
     // console.log(
