@@ -1,26 +1,34 @@
 Working todo list for small stuff that's not worth tracking in issues
 
 next: cleaning up state
-- make things run again without annotations
++ make things run again without annotations
     + update types based on latest plan
     + update store
     + update model
     + update components
-    - add tests
+    + add tests
 - Allow doc edits:
-    - change one word
+    + change one word
+    + change one sentence
+    + change one paragraph
+    + make the edit box the same-ish size as the original text.
 + set up react devtools
  - check that changing word only rerenders its ancestors, not entire doc
         - fix as needed based on https://chatgpt.com/c/68542486-c028-8011-9044-2fc769faf28d?model=o4-mini — React.memo / PureComponent
 - Further edits
-    - add a word
+    + add a word
     - remove a word
     - change a sentence
         - change a couple of words
         - split into two or more sentences
-    - add a sentence
+    + add a sentence
     - delete a sentence
     - change a paragraph — should "just work" based on sentences if I do it right
+- reuse unchanged child elements when editing mid-tree nodes
+- get rid of contents in non-leaf elements
+- fix createdAt mess
+- add time travel slider -- keep things read-only at first
+- select vs edit gestures -- click to select, double-click or hit enter to edit?
 
 - add back annotations support
 
@@ -29,3 +37,6 @@ next: cleaning up state
 
 idea (for later): add placeholder elements to the tree, or perhaps treat it as an element state — "a paragraph about the injustice of it all" that I plan to come back to and replace with actual text. 
 
+future: 
+- real DB
+- 
