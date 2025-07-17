@@ -7,7 +7,6 @@ interface TextPanelProps {
   sliderValue: Exclude<ElementKind, 'document'>;
   onSelect: (id: Id) => void;
   selected: Id | null;
-  sampleText: string;
 }
 
 /**
@@ -24,7 +23,7 @@ function computeTextAreaSize(width: number, height: number) {
   };
 }
 
-const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, selected, sampleText }) => {
+const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, selected }) => {
   const currentVersion = useCurrentVersion();
   const rootId = currentVersion.rootId;
   const root = useElement(rootId);
@@ -58,12 +57,7 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
     setEditingId(null);
     setEditingSize(null);
   };
-  
-  React.useEffect(() => {
-    docModel.updateElement(rootId, sampleText);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  
+    
   const isActiveLevel = (level: ElementKind) => sliderValue === level;
   
   const getAnnotationCountElement = (id: Id) => {

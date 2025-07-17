@@ -14,10 +14,11 @@ next: cleaning up state
     + make the edit box the same-ish size as the original text.
 + set up react devtools
 + fix createdAt mess — for now, have caller set it. Cleaner: have a wrapper type helper like WithCreatedAt<Element>.
- - check that changing word only rerenders its ancestors, not entire doc
-        - fix as needed based on https://chatgpt.com/c/68542486-c028-8011-9044-2fc769faf28d?model=o4-mini — React.memo / PureComponent
 + get rid of contents in non-leaf elements and recompute dynamically, or ensure it updates with edits.
    + perhaps those are equivalent — I suppose I could have a lazy recompute or eager one. And really no need to store it. Let's make it dynamic, and add a cache if it seems warranted later.
++ fix storage so it actually persists (don't overwrite with sample text every time)
+- check that changing word only rerenders its ancestors, not entire doc
+   - fix as needed based on https://chatgpt.com/c/68542486-c028-8011-9044-2fc769faf28d?model=o4-mini — React.memo / PureComponent
 - Further edits
     + add a word
     - remove a word
@@ -27,6 +28,7 @@ next: cleaning up state
     + add a sentence
     - delete a sentence
     - change a paragraph — should "just work" based on sentences if I do it right
+    - add a paragraph
 - reuse unchanged child elements when editing mid-tree nodes
 - add time travel slider -- keep things read-only at first
 - select vs edit gestures -- click to select, double-click or hit enter to edit?

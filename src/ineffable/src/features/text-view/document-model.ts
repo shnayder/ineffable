@@ -11,7 +11,10 @@ export class DocumentModel {
   private parentMap = new Map<Id, Id>();
   // TODO: handle annotations
 
-  constructor(store: typeof useDocStore = useDocStore) {
+  constructor(
+    store: typeof useDocStore = useDocStore,
+    sampleText: string = ""
+  ) {
     this._store = store;
     // initial build
     this.rebuildCaches();
@@ -29,6 +32,12 @@ export class DocumentModel {
       };
       state.addElement(rootElement);
       state.addVersion(rootId);
+    }
+
+    // If there's nothing in the store, use the sample text
+    const root = this.getRootElement();
+    if (root.childrenIds.length === 0 && sampleText) {
+      this.updateElement(root.id, sampleText);
     }
   }
 
@@ -420,7 +429,9 @@ export class DocumentModel {
     if (el.kind === "word") {
       return el.contents ?? "";
     }
-    const childTexts = el.childrenIds.map((cid) => this.computeFullContents(cid));
+    const childTexts = el.childrenIds.map((cid) =>
+      this.computeFullContents(cid)
+    );
     if (el.kind === "document") {
       return childTexts.join("\n\n");
     }
@@ -499,7 +510,17 @@ export class DocumentModel {
   }
 }
 
-export const docModel = new DocumentModel(useDocStore);
+const sampleText = `Tarragon was bored. He had planned to play with his toy spaceship, but Ginny broke it yesterday. Ginny was a weasel. She had orange fur, a lot of energy, and was Tarragon's best friend of all time.
+
+The weather outside was absolutely perfect for space adventures under the tall redwoods. The sun had just risen over the hills in the distance, lighting up the scattered clouds. Taraggon had just finished his breakfast of scrumptious savory french toast with green herbs, shredded mozzarella, and snail sauce, and now he had nothing to do.
+
+“I need to find someone to play with”, said Tarragon to himself. “Let's see if Paper the Squirrel or Ginny want to have an adventure.”
+
+Tarragon put on his white astronaut's jacket with a spaceship logo on the left shoulder and yellow loops for attaching items during spacewalks. He took the space-shuttle bag he always had with him and walked outside, pushed closed the door behind him, and hurried off to look for Paper the squirrel.
+
+The light flickered between the tall trunks and upper branches of the redwoods as he walked toward the tree where Paper the Squirrel lived.`;
+
+export const docModel = new DocumentModel(useDocStore, sampleText);
 
 // A wrapper hook for components to access element and be re-rendered when it changes.
 export function useElement(id: Id): Element {
