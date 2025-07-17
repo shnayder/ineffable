@@ -128,7 +128,7 @@ Model internals to maintain for efficient lookups:
 
 We are replacing an element with some new text. The original element may have children, etc.
 
-The goal is to reuse child and lower descendant elements where possible.
+The goal is to reuse the original, child, and grandchild elements where possible.
 
 Examples:
 
@@ -139,8 +139,10 @@ Examples:
 1. "Life is very good." -> "Life is very very good.". New element for second very.
 1. "A B C." -> "C B A". All new elements.
 1. "Hello. Nice to meet you." (paragraph) -> "Hello. How are you?" reuse "Hello." sentence.
-1. "Hello. Nice to meet you." (paragraph) -> "Hello. Very nice to meet you?" reuse "Hello.", "to", "meet", "you" words.
+1. "Hello. Nice to meet you." (paragraph) -> "Hello. Very nice to meet you." reuse "Hello.", "to", "meet", "you" words.
 1. "Hello. Nice to meet you." (paragraph) -> "Hello. Hello. Nice to meet you." reuse both sentences, make new one for second hello.
+1. "Hello. Nice to meet you." (paragraph) -> "Hello. Very nice to meet you. Nice to meet you." Reuse "Hello.". Reuse "to", "meet", "you" words for second sentence, make a new element for third. (i.e. Try to match >25% of child elements before moving on to next part.)
+1. "A B." -> "X A B.". Reuse A, B.
 
 Logic.
 
@@ -151,69 +153,19 @@ Logic.
 
 2. High-Level Steps
   1. Parse newContents into parts of the given kind (e.g., for a sentence, split into words).
-  1. Compare the parsed parts to the children of origElement.
+  1. Compare the parsed parts to the original element and its children.
   1. Reuse existing child elements where possible (by value and order).
+  1. For parts that don't match exactly, try to match children and reuse them.
   1. Create new elements for unmatched parts.
   1. Build a new list of children for the parent, mixing reused and new elements.
-  1. Recursively apply this logic to lower levels (e.g., for sentences, recurse into words). See below.
 
 3. Matching & Reuse Strategy
   - Left-to-right, greedy matching: For each part in the new contents, try to match it to the next unused child element with the same value.
   - If found, reuse that element (and mark it as used).
-  - If not found, create a new element.
+  - If not found:
+    - if leaf: create a new element.
+    - not leaf: try to match children
+      - if enough (25%) match, use them, consider parent element used
+      - if not, keep trying to match next elements
   - No reordering: If the order changes (e.g., "A B C" → "C B A"), do not reuse elements (all new).
   - Duplicate handling: If a value appears multiple times, only reuse as many existing elements as there are matches in order.
-
-4. Recursive Update Algorithm: At each level (paragraph, sentence, word):
-  1. Split the new contents into parts of the current kind (e.g., sentences for a paragraph, words for a sentence).
-  1. For each part in order:
-    1. Try to find the next unused child element whose contents match exactly.
-      1. If found, reuse that element (and recursively reuse its children).
-      1. If not found:
-        1. If this is not a leaf (e.g., not a word):
-          1. Recursively attempt to reuse children of all unused child elements at the next lower level (e.g., words in sentences).
-          1. Build a new element of this kind, reusing as many children as possible.
-        1. If this is a leaf (word):
-          1. Create a new element.
-  1. No reordering: Only match in order; if the order changes, treat as new.
-
-Pseudocode
-```typescript
-function updateElement(origElement, newContents, kind) {
-  const oldChildren = origElement.children;
-  const newParts = splitContents(newContents, kind);
-
-  const used = new Array(oldChildren.length).fill(false);
-  const newChildren = [];
-
-  for (const [i, part] of newParts.entries()) {
-    // Try to find an exact unused match at this level
-    let matchIdx = oldChildren.findIndex((child, idx) =>
-      !used[idx] && child.contents === part
-    );
-    if (matchIdx !== -1) {
-      // Reuse the whole element (and its subtree)
-      newChildren.push(oldChildren[matchIdx]);
-      used[matchIdx] = true;
-    } else if (kind !== "word") {
-      // Try to reuse children at the next lower level
-      // Find the next unused child as a candidate for partial reuse
-      let candidateIdx = oldChildren.findIndex((child, idx) => !used[idx]);
-      let candidate = candidateIdx !== -1 ? oldChildren[candidateIdx] : null;
-      let childKind = getChildKind(kind);
-      let reusedChildren = [];
-      if (candidate) {
-        reusedChildren = updateElement(candidate, part, childKind).children;
-        used[candidateIdx] = true;
-      } else {
-        reusedChildren = [];
-      }
-      // Create a new element of this kind, with reused children
-      newChildren.push(createElement(part, kind, reusedChildren));
-    } else {
-      // Leaf: create new
-      newChildren.push(createElement(part, kind));
-    }
-  }
-  return { ...origElement, children: newChildren };
-}
