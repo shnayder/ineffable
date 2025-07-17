@@ -13,7 +13,10 @@ export function multisetCounts(arr: string[]): Map<string, number> {
  * Detect if two arrays contain the same multiset of strings but in a
  * different order.
  */
-export function isReorderedSameParts(oldParts: string[], newParts: string[]): boolean {
+export function isReorderedSameParts(
+  oldParts: string[],
+  newParts: string[]
+): boolean {
   if (oldParts.length !== newParts.length) return false;
   if (oldParts.join("|") === newParts.join("|")) return false;
   const oldCounts = multisetCounts(oldParts);
@@ -54,40 +57,47 @@ export interface PartReuse {
  *
  * @param oldParts Array of old parts with their ids and text.
  * @param newParts Array of new text strings to match.
- * @param tokenizeChild Function to split child text for overlap comparison.
+ * @param tokenizePart Function to split child text for overlap comparison.
  * @param threshold Minimum overlap ratio to consider a partial match.
+ *
+ * @returns Array of PartReuse objects indicating the match status of each new part.
  */
 export function greedyMatchParts(
   oldParts: { id: string; text: string }[],
   newParts: string[],
-  tokenizeChild: (t: string) => string[],
+  tokenizePart: (t: string) => string[],
   threshold = 0.25
 ): PartReuse[] {
-  if (isReorderedSameParts(
-    oldParts.map((p) => p.text),
-    newParts
-  )) {
+  if (
+    isReorderedSameParts(
+      oldParts.map((p) => p.text),
+      newParts
+    )
+  ) {
     return newParts.map(() => ({ oldIndex: null, exact: false }));
   }
   const result: PartReuse[] = [];
+  // index into oldParts — will keep advancing as we find matches
   let startIdx = 0;
+
+  // go through each new part and try to find a match
   for (const newText of newParts) {
     let matched: PartReuse | null = null;
     for (let j = startIdx; j < oldParts.length; j++) {
       const old = oldParts[j];
       if (old.text === newText) {
         matched = { oldIndex: j, exact: true };
+
+        // once we use up an old part, advance the index
         startIdx = j + 1;
         break;
       }
       const overlap = tokenOverlap(
-        tokenizeChild(old.text),
-        tokenizeChild(newText)
+        tokenizePart(old.text),
+        tokenizePart(newText)
       );
       const ratio =
-        old.text.trim() === ""
-          ? 0
-          : overlap / tokenizeChild(old.text).length;
+        old.text.trim() === "" ? 0 : overlap / tokenizePart(old.text).length;
       if (ratio > threshold) {
         matched = { oldIndex: j, exact: false };
         startIdx = j + 1;
