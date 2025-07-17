@@ -362,11 +362,11 @@ describe("DocumentModel", () => {
 
       model.updateElement(wordE.id, "F");
 
-      const newWord = model.getElement(
-        model.getElement(
-          model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
-        ).childrenIds[0]
-      );
+      const updatedRoot = model.getRootElement();
+      const updatedPara = model.getElement(updatedRoot.childrenIds[0]);
+      const updatedSent = model.getElement(updatedPara.childrenIds[0]);
+      const newWord = model.getElement(updatedSent.childrenIds[0]);
+
       expect(newWord.id).not.toEqual(wordE.id);
       expect(newWord.contents).toBe("F");
     });
@@ -380,9 +380,10 @@ describe("DocumentModel", () => {
 
       model.updateElement(wordE.id, "E F");
 
-      const updatedSent = model.getElement(
-        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
-      );
+      const updatedRoot = model.getRootElement();
+      const updatedPara = model.getElement(updatedRoot.childrenIds[0]);
+      const updatedSent = model.getElement(updatedPara.childrenIds[0]);
+
       const w1 = model.getElement(updatedSent.childrenIds[0]);
       const w2 = model.getElement(updatedSent.childrenIds[1]);
       expect(w1.id).toEqual(wordE.id);
@@ -398,9 +399,10 @@ describe("DocumentModel", () => {
 
       model.updateElement(wordE.id, "E E");
 
-      const updatedSent = model.getElement(
-        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
-      );
+      const updatedRoot = model.getRootElement();
+      const updatedPara = model.getElement(updatedRoot.childrenIds[0]);
+      const updatedSent = model.getElement(updatedPara.childrenIds[0]);
+
       const w1 = model.getElement(updatedSent.childrenIds[0]);
       const w2 = model.getElement(updatedSent.childrenIds[1]);
       expect(w1.id).toEqual(wordE.id);
@@ -412,18 +414,24 @@ describe("DocumentModel", () => {
       model.updateElement(root.id, "Life is good.");
       const para = model.getElement(model.getRootElement().childrenIds[0]);
       const sent = model.getElement(para.childrenIds[0]);
-      const [wLife, wIs, wGood] = sent.childrenIds.map((id) => model.getElement(id));
+      const [wLife, wIs, wGood] = sent.childrenIds.map((id) =>
+        model.getElement(id)
+      );
 
       model.updateElement(sent.id, "Life is very good.");
 
-      const newSent = model.getElement(
-        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
+      const updatedRoot = model.getRootElement();
+      const updatedPara = model.getElement(updatedRoot.childrenIds[0]);
+      const updatedSent = model.getElement(updatedPara.childrenIds[0]);
+      expect(updatedSent.childrenIds.length).toBe(4);
+      const [uwLife, uwIs, uwVery, uwGood] = updatedSent.childrenIds.map((id) =>
+        model.getElement(id)
       );
-      const words = newSent.childrenIds.map((id) => model.getElement(id));
-      expect(words[0].id).toEqual(wLife.id);
-      expect(words[1].id).toEqual(wIs.id);
-      expect(words[2].contents).toBe("very");
-      expect(words[3].id).toEqual(wGood.id);
+
+      expect(uwLife.id).toEqual(wLife.id);
+      expect(uwIs.id).toEqual(wIs.id);
+      expect(uwVery.contents).toBe("very");
+      expect(uwGood.id).toEqual(wGood.id);
     });
 
     it("5. 'Life is very good.' -> 'Life is very very good.'", () => {
@@ -431,13 +439,15 @@ describe("DocumentModel", () => {
       model.updateElement(root.id, "Life is very good.");
       const para = model.getElement(model.getRootElement().childrenIds[0]);
       const sent = model.getElement(para.childrenIds[0]);
-      const [wLife, wIs, wVery, wGood] = sent.childrenIds.map((id) => model.getElement(id));
+      const [wLife, wIs, wVery, wGood] = sent.childrenIds.map((id) =>
+        model.getElement(id)
+      );
 
       model.updateElement(sent.id, "Life is very very good.");
 
-      const newSent = model.getElement(
-        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
-      );
+      const updatedRoot = model.getRootElement();
+      const updatedPara = model.getElement(updatedRoot.childrenIds[0]);
+      const newSent = model.getElement(updatedPara.childrenIds[0]);
       const words = newSent.childrenIds.map((id) => model.getElement(id));
       expect(words[0].id).toEqual(wLife.id);
       expect(words[1].id).toEqual(wIs.id);
@@ -455,9 +465,9 @@ describe("DocumentModel", () => {
 
       model.updateElement(sent.id, "C B A");
 
-      const newSent = model.getElement(
-        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
-      );
+      const updatedRoot = model.getRootElement();
+      const updatedPara = model.getElement(updatedRoot.childrenIds[0]);
+      const newSent = model.getElement(updatedPara.childrenIds[0]);
       const words = newSent.childrenIds.map((id) => model.getElement(id));
       expect(words[0].id).not.toEqual(wA.id);
       expect(words[1].id).not.toEqual(wB.id);
@@ -468,12 +478,16 @@ describe("DocumentModel", () => {
       const root = model.getRootElement();
       model.updateElement(root.id, "Hello. Nice to meet you.");
       const para = model.getElement(model.getRootElement().childrenIds[0]);
-      const [sHello, sNice] = para.childrenIds.map((id) => model.getElement(id));
+      const [sHello, sNice] = para.childrenIds.map((id) =>
+        model.getElement(id)
+      );
 
       model.updateElement(para.id, "Hello. How are you?");
 
       const newPara = model.getElement(model.getRootElement().childrenIds[0]);
-      const [nHello, nHow] = newPara.childrenIds.map((id) => model.getElement(id));
+      const [nHello, nHow] = newPara.childrenIds.map((id) =>
+        model.getElement(id)
+      );
       expect(nHello.id).toEqual(sHello.id);
       expect(nHow.id).not.toEqual(sNice.id);
     });
@@ -499,12 +513,16 @@ describe("DocumentModel", () => {
       const root = model.getRootElement();
       model.updateElement(root.id, "Hello. Nice to meet you.");
       const para = model.getElement(model.getRootElement().childrenIds[0]);
-      const [sHello, sNice] = para.childrenIds.map((id) => model.getElement(id));
+      const [sHello, sNice] = para.childrenIds.map((id) =>
+        model.getElement(id)
+      );
 
       model.updateElement(para.id, "Hello. Hello. Nice to meet you.");
 
       const newPara = model.getElement(model.getRootElement().childrenIds[0]);
-      const [first, second, third] = newPara.childrenIds.map((id) => model.getElement(id));
+      const [first, second, third] = newPara.childrenIds.map((id) =>
+        model.getElement(id)
+      );
       expect(first.id).toEqual(sHello.id);
       expect(second.id).not.toEqual(sHello.id);
       expect(third.id).toEqual(sNice.id);
@@ -522,9 +540,13 @@ describe("DocumentModel", () => {
       );
 
       const newPara = model.getElement(model.getRootElement().childrenIds[0]);
-      const [first, second, third] = newPara.childrenIds.map((id) => model.getElement(id));
+      const [first, second, third] = newPara.childrenIds.map((id) =>
+        model.getElement(id)
+      );
       expect(first.contents).toBe("");
-      expect(first.id).toEqual(para.childrenIds.map((id) => model.getElement(id))[0].id);
+      expect(first.id).toEqual(
+        para.childrenIds.map((id) => model.getElement(id))[0].id
+      );
       expect(second.id).not.toEqual(sNice.id);
       expect(third.id).not.toEqual(sNice.id);
     });
