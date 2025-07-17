@@ -1,7 +1,13 @@
 import { Id, myNanoid } from "@/utils/nanoid";
 import { useDocStore, type DocState } from "./document-store";
 import type { UseBoundStore } from "zustand";
-import { Annotation, Element, DocumentVersion, ElementKind } from "./types";
+import {
+  Annotation,
+  Element,
+  DocumentVersion,
+  ElementKind,
+  getChildKind,
+} from "./types";
 import { getOrThrow } from "@/utils/maphelp";
 import { greedyMatchParts } from "./reuse-utils";
 
@@ -229,19 +235,87 @@ export class DocumentModel {
   };
 
   /**
+   * Helper to create a new element and add it to the store.
+   */
+  private _createElement(
+    kind: ElementKind,
+    contents: string,
+    childrenIds: Id[] = []
+  ): Id {
+    const { addElement } = this._store.getState();
+    const element = {
+      id: myNanoid(),
+      kind,
+      contents: kind === "word" ? contents : "",
+      childrenIds,
+      createdAt: new Date(),
+    };
+    addElement(element);
+    return element.id;
+  }
+
+  /**
+   * Helper to match and reuse children for a given level (word, sentence, paragraph).
+   * Returns an array of child Ids (reused or new as needed).
+   *
+   * @param kind The kind of the parent element (sentence, paragraph, etc.)
+   * @param newParts The new parts of the contents to match against existing children.
+   * @param prevChildrenIds The Ids of the previous children to match against.
+   */
+  private _matchAndReuseChildren(
+    kind: ElementKind,
+    newParts: string[],
+    prevChildrenIds: Id[] = []
+  ): Id[] {
+    const childKind = getChildKind(kind);
+    if (!prevChildrenIds.length) {
+      // No previous children, just create new
+      return newParts.map(
+        (part) => this._parseContentsToElements(part, childKind)[0]
+      );
+    }
+    // Compute full contents for each previous child
+    const prevChildContents = prevChildrenIds.map((cid) =>
+      this.computeFullContents(cid)
+    );
+    // Use greedyMatchParts to find best matches
+    const matches = greedyMatchParts(
+      prevChildrenIds.map((id, i) => ({ id, text: prevChildContents[i] })),
+      newParts,
+      (t: string) =>
+        childKind === "word"
+          ? [t]
+          : this._splitContents(
+              t,
+              childKind === "sentence" ? "word" : "sentence"
+            ),
+      0.25
+    );
+    const childIds: Id[] = [];
+    for (let i = 0; i < matches.length; i++) {
+      const m = matches[i];
+      const part = newParts[i];
+      if (m.oldIndex != null && m.exact) {
+        childIds.push(prevChildrenIds[m.oldIndex]);
+      } else if (m.oldIndex != null) {
+        // Partial match — recursively parse with the old child to reuse subchildren
+        childIds.push(
+          this._parseContentsToElements(
+            part,
+            childKind,
+            prevChildrenIds[m.oldIndex]
+          )[0]
+        );
+      } else {
+        childIds.push(this._parseContentsToElements(part, childKind)[0]);
+      }
+    }
+    return childIds;
+  }
+
+  /**
    * Parses a string of text for an element into a list of new Element objects.
-   *
-   * - Insert new elements into the store.
-   * - (TODO:) For non-leaf elements, reuse existing children if they match the parsed contents closely enough
-   *    (Starting with exact match.)
-   * - Update the parentMap for new elements within the returned subtrees.
-   * - Does _not_ insert the returned elements into the document tree — the caller must do that and update the parentMap based on those changes.
-   * - Note: contents may contain more than one element of the specified kind. So e.g. we may get "A B" and
-   *   kind="word", and should return two new word elements.
-   *
-   * @param previousId If provided, this is the element that we're replacing. It or its children can be reused if they match.
-   *
-   * @returns An array of Ids of the new elements created from the contents.
+   * Handles splitting, matching, and recursive reuse for all levels.
    */
   _parseContentsToElements(
     contents: string,
@@ -249,8 +323,6 @@ export class DocumentModel {
     previousId?: Id
   ): Id[] {
     const contentParts = this._splitContents(contents, kind);
-
-    // Get the original children ids from the parent if provided
     let prevChildrenIds: Id[] = [];
     let prevFullContents: string | undefined;
     if (previousId) {
@@ -258,7 +330,6 @@ export class DocumentModel {
       prevChildrenIds = el.childrenIds;
       prevFullContents = this.computeFullContents(previousId);
     }
-
     // Handle multiple new elements at this level
     if (contentParts.length > 1) {
       let usedPrev = false;
@@ -277,187 +348,23 @@ export class DocumentModel {
         })
         .flat();
     }
-
-    // Single part - proceed with original logic
-
-    const { addElement } = this._store.getState();
-
-    let addElementFn = (
-      text: string,
-      kind: ElementKind,
-      childrenIds: Id[] | undefined = undefined
-    ): Id => {
-      if (kind === "word" && text.trim() === "") {
-        throw new Error("Cannot create a word element with empty contents");
-      }
-      const element = {
-        id: myNanoid(),
-        kind,
-        contents: kind === "word" ? text : "",
-        childrenIds: childrenIds ?? [],
-        createdAt: new Date(),
-      };
-      addElement(element);
-      return element.id;
-    };
-
-    const addSentence = (sentenceContents: string, prevId?: Id): Id => {
-      let wordTexts = this._splitContents(sentenceContents, "word");
-      let childIds: Id[] = [];
-      if (prevId) {
-        const prevEl = this.getElement(prevId);
-        const prevWords = prevEl.childrenIds.map((cid) =>
-          this.computeFullContents(cid)
-        );
-        
-        // Determine which of the new words correspond to children of the
-        // previous sentence. Each match has the index of the old child and
-        // whether it was an exact text match.
-        const matches = greedyMatchParts(
-          prevEl.childrenIds.map((id, i) => ({ id, text: prevWords[i] })),
-          wordTexts,
-          (t: string) => [t],
-          0.25
-        );
-        for (let i = 0; i < matches.length; i++) {
-          const m = matches[i];
-          const part = wordTexts[i];
-          if (m.oldIndex != null && m.exact) {
-            childIds.push(prevEl.childrenIds[m.oldIndex]);
-          } else if (m.oldIndex != null) {
-            // The new word partially matches an old child. Re-parse that
-            // portion using the old word so any grandchildren can be reused.
-            childIds.push(
-              this._parseContentsToElements(
-                part,
-                "word",
-                prevEl.childrenIds[m.oldIndex]
-              )[0]
-            );
-          } else {
-            childIds.push(addElementFn(part, "word"));
-          }
-        }
-      } else {
-        childIds = wordTexts.map((word) => addElementFn(word, "word"));
-      }
-      let sentenceElement = addElementFn(
-        sentenceContents,
-        "sentence",
-        childIds
-      );
-      childIds.forEach((cid) => this.parentMap.set(cid, sentenceElement));
-      return sentenceElement;
-    };
-
-    const addParagraph = (paragraphContents: string, prevId?: Id): Id => {
-      const sentenceTexts = this._splitContents(paragraphContents, "sentence");
-      let childIds: Id[] = [];
-      if (prevId) {
-        const prevEl = this.getElement(prevId);
-        const prevSents = prevEl.childrenIds.map((cid) =>
-          this.computeFullContents(cid)
-        );
-        
-        // Match new sentences against the previous paragraph's children.
-        const matches = greedyMatchParts(
-          prevEl.childrenIds.map((id, i) => ({ id, text: prevSents[i] })),
-          sentenceTexts,
-          (t: string) => this._splitContents(t, "word"),
-          0.25
-        );
-        for (let i = 0; i < matches.length; i++) {
-          const m = matches[i];
-          const part = sentenceTexts[i];
-          if (m.oldIndex != null && m.exact) {
-            childIds.push(prevEl.childrenIds[m.oldIndex]);
-          } else if (m.oldIndex != null) {
-            // Partial match — recursively parse with the old sentence to
-            // reuse any matching words.
-            childIds.push(
-              this._parseContentsToElements(
-                part,
-                "sentence",
-                prevEl.childrenIds[m.oldIndex]
-              )[0]
-            );
-          } else {
-            childIds.push(addSentence(part));
-          }
-        }
-      } else {
-        childIds = sentenceTexts.map((s) => addSentence(s));
-      }
-      let paragraphElement = addElementFn(
-        paragraphContents,
-        "paragraph",
-        childIds
-      );
-      childIds.forEach((cid) => this.parentMap.set(cid, paragraphElement));
-      return paragraphElement;
-    };
-
-    const addDocument = (documentContents: string, prevId?: Id): Id => {
-      const paragraphTexts = this._splitContents(documentContents, "paragraph");
-      let childIds: Id[] = [];
-      if (prevId) {
-        const prevEl = this.getElement(prevId);
-        const prevParas = prevEl.childrenIds.map((cid) =>
-          this.computeFullContents(cid)
-        );
-
-        // Match new paragraphs against the previous document's children so we
-        // can reuse entire paragraphs when possible.
-        const matches = greedyMatchParts(
-          prevEl.childrenIds.map((id, i) => ({ id, text: prevParas[i] })),
-          paragraphTexts,
-          (t: string) => this._splitContents(t, "sentence"),
-          0.25
-        );
-        for (let i = 0; i < matches.length; i++) {
-          const m = matches[i];
-          const part = paragraphTexts[i];
-          if (m.oldIndex != null && m.exact) {
-            childIds.push(prevEl.childrenIds[m.oldIndex]);
-          } else if (m.oldIndex != null) {
-            // Partial match — reparse with the old paragraph so its sentences
-            // and words can be reused when possible.
-            childIds.push(
-              this._parseContentsToElements(
-                part,
-                "paragraph",
-                prevEl.childrenIds[m.oldIndex]
-              )[0]
-            );
-          } else {
-            childIds.push(addParagraph(part));
-          }
-        }
-      } else {
-        childIds = paragraphTexts.map((p) => addParagraph(p));
-      }
-      let documentElement = addElementFn(
-        documentContents,
-        "document",
-        childIds
-      );
-      childIds.forEach((cid) => this.parentMap.set(cid, documentElement));
-      return documentElement;
-    };
-
+    // Single part - handle by kind
     if (kind === "word") {
-      return [previousId && contents === prevFullContents
-        ? previousId
-        : addElementFn(contents, "word")];
-    } else if (kind === "sentence") {
-      return [addSentence(contents, previousId)];
-    } else if (kind === "paragraph") {
-      return [addParagraph(contents, previousId)];
-    } else if (kind === "document") {
-      return [addDocument(contents, previousId)];
-    } else {
-      throw new Error(`Unknown element kind: ${kind}`);
+      if (previousId && contents === prevFullContents) {
+        return [previousId];
+      }
+      return [this._createElement("word", contents)];
     }
+    // For sentence, paragraph, document: recursively match and reuse children
+    const newChildParts = this._splitContents(contents, getChildKind(kind));
+    const childIds = this._matchAndReuseChildren(
+      kind,
+      newChildParts,
+      prevChildrenIds
+    );
+    const newId = this._createElement(kind, contents, childIds);
+    childIds.forEach((cid) => this.parentMap.set(cid, newId));
+    return [newId];
   }
 
   /**
