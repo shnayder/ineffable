@@ -17,9 +17,17 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
 
   const [editingId, setEditingId] = useState<Id | null>(null);
   const [editingValue, setEditingValue] = useState('');
+  const [editingSize, setEditingSize] = useState<{ width: number; height: number } | null>(null);
 
   const selectForEdit = (id: Id) => {
     onSelect(id);
+    const el = document.getElementById(id);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setEditingSize({ width: rect.width, height: rect.height });
+    } else {
+      setEditingSize(null);
+    }
     setEditingId(id);
     setEditingValue(docModel.getElement(id)?.contents ?? '');
   };
@@ -28,9 +36,13 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
     if (!editingId) return;
     docModel.updateElement(editingId, editingValue);
     setEditingId(null);
+    setEditingSize(null);
   };
 
-  const cancelEdit = () => setEditingId(null);
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingSize(null);
+  };
 
   React.useEffect(() => {
     docModel.updateElement(rootId, sampleText);
@@ -80,7 +92,9 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
   const DocumentElement: React.FC<DocumentElementProps> = ({ id }) => {
     const el = useElement(id);
     const isEditing = editingId === id;
-    const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleKey = (
+      e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => {
       if (e.key === 'Enter') {
         commitEdit();
       } else if (e.key === 'Escape') {
@@ -98,12 +112,16 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
 
     if (isEditing) {
       return (
-        <input
+        <textarea
           autoFocus
           value={editingValue}
           onChange={(e) => setEditingValue(e.target.value)}
           onKeyDown={handleKey}
-          className="border border-surface-border-base rounded px-1 w-full"
+          className="border border-surface-border-base rounded px-1 w-full resize-none"
+          style={{
+            width: editingSize ? `${editingSize.width}px` : undefined,
+            height: editingSize ? `${editingSize.height}px` : undefined,
+          }}
         />
       );
     }
