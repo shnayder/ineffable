@@ -349,6 +349,201 @@ describe("DocumentModel", () => {
     const updatedWordX = model.getElement(updatedSentEX.childrenIds[1]);
     expect(updatedWordE.id).toEqual(wordE.id);
     expect(updatedWordE.contents).toBe("E");
-    expect(updatedWordX.contents).toBe("X");
+    expect(updatedWordX.contents).toBe("X.");
+  });
+
+  describe("examples from docs", () => {
+    it("1. 'E' -> 'F'", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "E");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const sent = model.getElement(para.childrenIds[0]);
+      const wordE = model.getElement(sent.childrenIds[0]);
+
+      model.updateElement(wordE.id, "F");
+
+      const newWord = model.getElement(
+        model.getElement(
+          model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
+        ).childrenIds[0]
+      );
+      expect(newWord.id).not.toEqual(wordE.id);
+      expect(newWord.contents).toBe("F");
+    });
+
+    it("2. 'E' -> 'E F'", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "E");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const sent = model.getElement(para.childrenIds[0]);
+      const wordE = model.getElement(sent.childrenIds[0]);
+
+      model.updateElement(wordE.id, "E F");
+
+      const updatedSent = model.getElement(
+        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
+      );
+      const w1 = model.getElement(updatedSent.childrenIds[0]);
+      const w2 = model.getElement(updatedSent.childrenIds[1]);
+      expect(w1.id).toEqual(wordE.id);
+      expect(w2.contents).toBe("F");
+    });
+
+    it("3. 'E' -> 'E E'", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "E");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const sent = model.getElement(para.childrenIds[0]);
+      const wordE = model.getElement(sent.childrenIds[0]);
+
+      model.updateElement(wordE.id, "E E");
+
+      const updatedSent = model.getElement(
+        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
+      );
+      const w1 = model.getElement(updatedSent.childrenIds[0]);
+      const w2 = model.getElement(updatedSent.childrenIds[1]);
+      expect(w1.id).toEqual(wordE.id);
+      expect(w2.id).not.toEqual(wordE.id);
+    });
+
+    it("4. 'Life is good.' -> 'Life is very good.'", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "Life is good.");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const sent = model.getElement(para.childrenIds[0]);
+      const [wLife, wIs, wGood] = sent.childrenIds.map((id) => model.getElement(id));
+
+      model.updateElement(sent.id, "Life is very good.");
+
+      const newSent = model.getElement(
+        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
+      );
+      const words = newSent.childrenIds.map((id) => model.getElement(id));
+      expect(words[0].id).toEqual(wLife.id);
+      expect(words[1].id).toEqual(wIs.id);
+      expect(words[2].contents).toBe("very");
+      expect(words[3].id).toEqual(wGood.id);
+    });
+
+    it("5. 'Life is very good.' -> 'Life is very very good.'", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "Life is very good.");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const sent = model.getElement(para.childrenIds[0]);
+      const [wLife, wIs, wVery, wGood] = sent.childrenIds.map((id) => model.getElement(id));
+
+      model.updateElement(sent.id, "Life is very very good.");
+
+      const newSent = model.getElement(
+        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
+      );
+      const words = newSent.childrenIds.map((id) => model.getElement(id));
+      expect(words[0].id).toEqual(wLife.id);
+      expect(words[1].id).toEqual(wIs.id);
+      expect(words[2].id).toEqual(wVery.id);
+      expect(words[3].id).not.toEqual(wVery.id);
+      expect(words[4].id).toEqual(wGood.id);
+    });
+
+    it("6. 'A B C.' -> 'C B A'", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "A B C");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const sent = model.getElement(para.childrenIds[0]);
+      const [wA, wB, wC] = sent.childrenIds.map((id) => model.getElement(id));
+
+      model.updateElement(sent.id, "C B A");
+
+      const newSent = model.getElement(
+        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
+      );
+      const words = newSent.childrenIds.map((id) => model.getElement(id));
+      expect(words[0].id).not.toEqual(wA.id);
+      expect(words[1].id).not.toEqual(wB.id);
+      expect(words[2].id).not.toEqual(wC.id);
+    });
+
+    it("7. paragraph sentence reuse", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "Hello. Nice to meet you.");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const [sHello, sNice] = para.childrenIds.map((id) => model.getElement(id));
+
+      model.updateElement(para.id, "Hello. How are you?");
+
+      const newPara = model.getElement(model.getRootElement().childrenIds[0]);
+      const [nHello, nHow] = newPara.childrenIds.map((id) => model.getElement(id));
+      expect(nHello.id).toEqual(sHello.id);
+      expect(nHow.id).not.toEqual(sNice.id);
+    });
+
+    it("8. reuse words inside changed sentence", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "Hello. Nice to meet you.");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const sNice = model.getElement(para.childrenIds[1]);
+      const niceWords = sNice.childrenIds.map((cid) => model.getElement(cid));
+
+      model.updateElement(para.id, "Hello. Very nice to meet you.");
+
+      const newPara = model.getElement(model.getRootElement().childrenIds[0]);
+      const newSent = model.getElement(newPara.childrenIds[1]);
+      const words = newSent.childrenIds.map((cid) => model.getElement(cid));
+      expect(words[2].id).toEqual(niceWords[1].id); // to
+      expect(words[3].id).toEqual(niceWords[2].id); // meet
+      expect(words[4].id).toEqual(niceWords[3].id); // you.
+    });
+
+    it("9. duplicate hello sentence", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "Hello. Nice to meet you.");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const [sHello, sNice] = para.childrenIds.map((id) => model.getElement(id));
+
+      model.updateElement(para.id, "Hello. Hello. Nice to meet you.");
+
+      const newPara = model.getElement(model.getRootElement().childrenIds[0]);
+      const [first, second, third] = newPara.childrenIds.map((id) => model.getElement(id));
+      expect(first.id).toEqual(sHello.id);
+      expect(second.id).not.toEqual(sHello.id);
+      expect(third.id).toEqual(sNice.id);
+    });
+
+    it("10. partial reuse then new sentence", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "Hello. Nice to meet you.");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const sNice = model.getElement(para.childrenIds[1]);
+
+      model.updateElement(
+        para.id,
+        "Hello. Very nice to meet you. Nice to meet you."
+      );
+
+      const newPara = model.getElement(model.getRootElement().childrenIds[0]);
+      const [first, second, third] = newPara.childrenIds.map((id) => model.getElement(id));
+      expect(first.contents).toBe("");
+      expect(first.id).toEqual(para.childrenIds.map((id) => model.getElement(id))[0].id);
+      expect(second.id).not.toEqual(sNice.id);
+      expect(third.id).not.toEqual(sNice.id);
+    });
+
+    it("11. 'A B.' -> 'X A B.'", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "A B.");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const sent = model.getElement(para.childrenIds[0]);
+      const [wA, wB] = sent.childrenIds.map((cid) => model.getElement(cid));
+
+      model.updateElement(sent.id, "X A B.");
+
+      const newSent = model.getElement(
+        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
+      );
+      const words = newSent.childrenIds.map((cid) => model.getElement(cid));
+      expect(words[1].id).toEqual(wA.id);
+      expect(words[2].id).toEqual(wB.id);
+    });
   });
 });
