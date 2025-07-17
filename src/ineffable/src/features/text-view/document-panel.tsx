@@ -1,4 +1,4 @@
-import React, { createElement, useState } from 'react';
+import React, { useState } from 'react';
 import { Annotation, Element, ElementKind } from './types';
 import { Id } from '@/utils/nanoid';
 import { docModel, useCurrentVersion, useElement } from './document-model';
@@ -27,10 +27,11 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
   const currentVersion = useCurrentVersion();
   const rootId = currentVersion.rootId;
   const root = useElement(rootId);
-  
+
   const [editingId, setEditingId] = useState<Id | null>(null);
   const [editingSize, setEditingSize] = useState<{ width: number; height: number } | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
   
   const selectForEdit = (id: Id) => {
     onSelect(id);
@@ -56,6 +57,27 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
   const cancelEdit = () => {
     setEditingId(null);
     setEditingSize(null);
+  };
+
+  const handleRootKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (editingId) {
+      return; // textarea handles its own keys
+    }
+    if (!selected) return;
+    if (e.key === 'Enter') {
+      const el = docModel.getElement(selected);
+      if (isActiveLevel(el.kind)) {
+        e.preventDefault();
+        selectForEdit(selected);
+      }
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      const el = docModel.getElement(selected);
+      if (el.kind !== 'document') {
+        e.preventDefault();
+        docModel.deleteElement(selected);
+        onSelect(null);
+      }
+    }
   };
     
   const isActiveLevel = (level: ElementKind) => sliderValue === level;
@@ -111,11 +133,14 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
       }
     };
     
-    const clickToEdit = () => {
+    const handleClick = () => {
+      onSelect(id);
+      panelRef.current?.focus();
+    };
+
+    const handleDoubleClick = () => {
       if (isActiveLevel(el.kind)) {
         selectForEdit(id);
-      } else {
-        onSelect(id);
       }
     };
     
@@ -143,46 +168,66 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
     
     if (el.kind === 'word') {
       return (
-        <span id={id} className={getClassName('word', id)} onClick={clickToEdit}>
-        {el.contents}
-        {isActiveLevel('word') && getAnnotationCountElement(id)}
+        <span
+          id={id}
+          className={getClassName('word', id)}
+          onClick={handleClick}
+          onDoubleClick={handleDoubleClick}
+        >
+          {el.contents}
+          {isActiveLevel('word') && getAnnotationCountElement(id)}
         </span>
       );
     }
     
     if (el.kind === 'sentence') {
       return (
-        <span id={id} className={getClassName('sentence', id)} onClick={clickToEdit}>
-        {el.childrenIds.map((cid, idx) => (
-          <React.Fragment key={cid}>
-          <DocumentElement id={cid} />
-          {idx < el.childrenIds.length - 1 && ' '}
-          </React.Fragment>
-        ))}
-        {isActiveLevel('sentence') && getAnnotationCountElement(id)}
+        <span
+          id={id}
+          className={getClassName('sentence', id)}
+          onClick={handleClick}
+          onDoubleClick={handleDoubleClick}
+        >
+          {el.childrenIds.map((cid, idx) => (
+            <React.Fragment key={cid}>
+              <DocumentElement id={cid} />
+              {idx < el.childrenIds.length - 1 && ' '}
+            </React.Fragment>
+          ))}
+          {isActiveLevel('sentence') && getAnnotationCountElement(id)}
         </span>
       );
     }
     
     // paragraph
     return (
-      <p id={id} className={getClassName('paragraph', id)} onClick={clickToEdit}>
-      {el.childrenIds.map((cid, idx) => (
-        <React.Fragment key={cid}>
-        <DocumentElement id={cid} />
-        {idx < el.childrenIds.length - 1 && ' '}
-        </React.Fragment>
-      ))}
-      {isActiveLevel('paragraph') && getAnnotationCountElement(id)}
+      <p
+        id={id}
+        className={getClassName('paragraph', id)}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+      >
+        {el.childrenIds.map((cid, idx) => (
+          <React.Fragment key={cid}>
+            <DocumentElement id={cid} />
+            {idx < el.childrenIds.length - 1 && ' '}
+          </React.Fragment>
+        ))}
+        {isActiveLevel('paragraph') && getAnnotationCountElement(id)}
       </p>
     );
   };
   
   return (
-    <div className="w-full mb-4 min-h-[120px] max-w-prose">
-    {root.childrenIds.map((cid) => (
-      <DocumentElement key={cid} id={cid} />
-    ))}
+    <div
+      ref={panelRef}
+      tabIndex={0}
+      onKeyDown={handleRootKey}
+      className="w-full mb-4 min-h-[120px] max-w-prose"
+    >
+      {root.childrenIds.map((cid) => (
+        <DocumentElement key={cid} id={cid} />
+      ))}
     </div>
   );
 };

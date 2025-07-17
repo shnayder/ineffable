@@ -352,6 +352,39 @@ describe("DocumentModel", () => {
     expect(updatedWordX.contents).toBe("X.");
   });
 
+  it("deletes a word", () => {
+    model.updateElement(model.getRootElement().id, "A B.");
+    const root = model.getRootElement();
+    const para = model.getElement(root.childrenIds[0]);
+    const sent = model.getElement(para.childrenIds[0]);
+    const wordA = model.getElement(sent.childrenIds[0]);
+
+    model.deleteElement(wordA.id);
+
+    const updatedRoot = model.getRootElement();
+    const updatedPara = model.getElement(updatedRoot.childrenIds[0]);
+    const updatedSent = model.getElement(updatedPara.childrenIds[0]);
+    expect(updatedSent.childrenIds.length).toBe(1);
+    const remaining = model.getElement(updatedSent.childrenIds[0]);
+    expect(remaining.contents).toBe("B.");
+  });
+
+  it("deletes a sentence", () => {
+    model.updateElement(model.getRootElement().id, "A B. C D.");
+    const root = model.getRootElement();
+    const para = model.getElement(root.childrenIds[0]);
+    const firstSentence = model.getElement(para.childrenIds[0]);
+    const secondSentence = model.getElement(para.childrenIds[1]);
+
+    model.deleteElement(firstSentence.id);
+
+    const updatedRoot = model.getRootElement();
+    const updatedPara = model.getElement(updatedRoot.childrenIds[0]);
+    expect(updatedPara.childrenIds.length).toBe(1);
+    const remaining = model.getElement(updatedPara.childrenIds[0]);
+    expect(remaining.id).toEqual(secondSentence.id);
+  });
+
   describe("examples from docs", () => {
     it("1. 'E' -> 'F'", () => {
       const root = model.getRootElement();
