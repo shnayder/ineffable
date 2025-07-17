@@ -29,6 +29,7 @@ describe("DocumentModel", () => {
     expect(ids).toHaveLength(1);
     const sentence = model.getElement(ids[0]);
     expect(sentence.kind).toBe("sentence");
+    expect(sentence.contents).toBe("");
     expect(sentence.childrenIds).toHaveLength(2);
     const first = model.getElement(sentence.childrenIds[0]);
     const second = model.getElement(sentence.childrenIds[1]);
@@ -47,9 +48,12 @@ describe("DocumentModel", () => {
     expect(ids).toHaveLength(1);
     const doc = model.getElement(ids[0]);
     expect(doc.kind).toBe("document");
+    expect(doc.contents).toBe("");
     expect(doc.childrenIds.length).toBe(2);
     const para1 = model.getElement(doc.childrenIds[0]);
     const para2 = model.getElement(doc.childrenIds[1]);
+    expect(para1.contents).toBe("");
+    expect(para2.contents).toBe("");
     expect(para1.childrenIds.length).toBe(1);
     expect(para2.childrenIds.length).toBe(2);
   });
@@ -69,11 +73,15 @@ describe("DocumentModel", () => {
     expect(updatedRoot.childrenIds.length).toBe(2);
     const para1 = model.getElement(updatedRoot.childrenIds[0]);
     const para2 = model.getElement(updatedRoot.childrenIds[1]);
+    expect(updatedRoot.contents).toBe("");
+    expect(para1.contents).toBe("");
+    expect(para2.contents).toBe("");
     expect(para1.kind).toBe("paragraph");
     expect(para1.childrenIds.length).toBe(1);
     expect(para2.kind).toBe("paragraph");
     expect(para2.childrenIds.length).toBe(2);
     const sentence1 = model.getElement(para1.childrenIds[0]);
+    expect(sentence1.contents).toBe("");
     expect(sentence1.kind).toBe("sentence");
     expect(sentence1.childrenIds.length).toBe(2);
     const word1 = model.getElement(sentence1.childrenIds[0]);
@@ -84,6 +92,7 @@ describe("DocumentModel", () => {
     expect(word2.contents).toBe("B.");
 
     const sentence2 = model.getElement(para2.childrenIds[0]);
+    expect(sentence2.contents).toBe("");
     expect(sentence2.kind).toBe("sentence");
     expect(sentence2.childrenIds.length).toBe(2);
     const word3 = model.getElement(sentence2.childrenIds[0]);
@@ -94,6 +103,7 @@ describe("DocumentModel", () => {
     expect(word4.contents).toBe("D.");
 
     const sentence3 = model.getElement(para2.childrenIds[1]);
+    expect(sentence3.contents).toBe("");
     expect(sentence3.kind).toBe("sentence");
     expect(sentence3.childrenIds.length).toBe(2);
     const word5 = model.getElement(sentence3.childrenIds[0]);
@@ -233,5 +243,18 @@ describe("DocumentModel", () => {
     expect(updatedParaXY.childrenIds.length).toBe(1);
     const updatedParaZW = model.getElement(updatedRoot.childrenIds[2]);
     expect(updatedParaZW.childrenIds.length).toBe(1);
+  });
+
+  it("computes full contents for non-leaf elements", () => {
+    const text = "A B.\n\nC D. E F.";
+    model.updateElement(model.getRootElement().id, text);
+
+    const root = model.getRootElement();
+    expect(model.computeFullContents(root.id)).toBe(text);
+
+    const para2 = model.getElement(root.childrenIds[1]);
+    const sentEF = model.getElement(para2.childrenIds[1]);
+    expect(model.computeFullContents(para2.id)).toBe("C D. E F.");
+    expect(model.computeFullContents(sentEF.id)).toBe("E F.");
   });
 });
