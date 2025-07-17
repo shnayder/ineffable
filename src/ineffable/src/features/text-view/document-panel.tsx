@@ -130,7 +130,7 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
         <textarea
           ref={textareaRef}
           autoFocus
-          defaultValue={el.contents}
+          defaultValue={docModel.computeFullContents(id)}
           onInput={(e) => {
             // Auto-expand height
             e.currentTarget.style.height = 'auto';

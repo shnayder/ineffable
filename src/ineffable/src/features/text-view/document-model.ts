@@ -257,13 +257,13 @@ export class DocumentModel {
       kind: ElementKind,
       childrenIds: Id[] | undefined = undefined
     ): Id => {
-      if (text.trim() === "") {
+      if (kind === "word" && text.trim() === "") {
         throw new Error("Cannot create a word element with empty contents");
       }
       const element = {
         id: myNanoid(),
         kind,
-        contents: text,
+        contents: kind === "word" ? text : "",
         childrenIds: childrenIds ?? [],
         createdAt: new Date(),
       };
@@ -413,6 +413,19 @@ export class DocumentModel {
     // Replace with empty list to remove it from the parent's childrenIds.
     // This will bubble up to the root element, creating a new version.
     this._replaceElement(el, []);
+  }
+
+  computeFullContents(id: Id): string {
+    const el = this.getElement(id);
+    if (el.kind === "word") {
+      return el.contents ?? "";
+    }
+    const childTexts = el.childrenIds.map((cid) => this.computeFullContents(cid));
+    if (el.kind === "document") {
+      return childTexts.join("\n\n");
+    }
+    // sentence or paragraph
+    return childTexts.join(" ");
   }
 
   // // write paths incrementally update caches + store

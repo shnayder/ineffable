@@ -47,6 +47,30 @@ describe("DocStore", () => {
     expect(Object.keys(store.getState().elements)).toHaveLength(3);
   });
 
+  it("throws when adding non-word element with contents", () => {
+    expect(() =>
+      store.getState().addElement({
+        id: myNanoid(),
+        kind: "sentence",
+        contents: "nope",
+        childrenIds: [],
+        createdAt: new Date(),
+      })
+    ).toThrow();
+
+    expect(() =>
+      store.getState().addElements([
+        {
+          id: myNanoid(),
+          kind: "paragraph",
+          contents: "bad",
+          childrenIds: [],
+          createdAt: new Date(),
+        },
+      ])
+    ).toThrow();
+  });
+
   it("creates annotations with mapping", () => {
     const elId = myNanoid();
     store.getState().addElement({

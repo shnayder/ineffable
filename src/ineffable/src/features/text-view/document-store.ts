@@ -100,6 +100,11 @@ const createState: StateCreator<
 
   // mutators
   addElement: (el: Element) => {
+    if (el.kind !== "word" && el.contents && el.contents !== "") {
+      throw new Error(
+        `Non-word element ${el.id} with kind ${el.kind} cannot have contents`
+      );
+    }
     set((state) => {
       state.elements[el.id] = el;
     });
@@ -110,6 +115,11 @@ const createState: StateCreator<
     const ids: Id[] = [];
     set((state) => {
       els.forEach((el) => {
+        if (el.kind !== "word" && el.contents && el.contents !== "") {
+          throw new Error(
+            `Non-word element ${el.id} with kind ${el.kind} cannot have contents`
+          );
+        }
         state.elements[el.id] = el;
         ids.push(el.id);
       });
