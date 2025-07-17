@@ -131,10 +131,11 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
             e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
           }}
           onKeyDown={handleKey}
-          className="border border-surface-border-base rounded px-1 w-full max-w-32 overflow-hidden"
+          className="border border-surface-border-base rounded px-1 w-full max-w-32 overflow-hidden h-auto"
           style={{
             minHeight: '1.2em',
             maxWidth: editingSize?.width ? `${Math.max(editingSize.width, 200)}px` : '400px',
+            height: editingSize?.height ? `${editingSize.height}px` : 'auto',
           }}
           />
       );
