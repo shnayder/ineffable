@@ -20,6 +20,7 @@ describe("DocStore", () => {
       kind: "word",
       contents: "hi",
       childrenIds: [],
+      createdAt: new Date(),
     });
     expect(returnedId).toBe(id1);
     const el1 = store.getState().elements[id1];
@@ -27,8 +28,20 @@ describe("DocStore", () => {
     expect(el1.createdAt).toBeInstanceOf(Date);
 
     const ids = store.getState().addElements([
-      { id: id2, kind: "word", contents: "a", childrenIds: [] },
-      { id: id3, kind: "word", contents: "b", childrenIds: [] },
+      {
+        id: id2,
+        kind: "word",
+        contents: "a",
+        childrenIds: [],
+        createdAt: new Date(),
+      },
+      {
+        id: id3,
+        kind: "word",
+        contents: "b",
+        childrenIds: [],
+        createdAt: new Date(),
+      },
     ]);
     expect(ids).toEqual([id2, id3]);
     expect(Object.keys(store.getState().elements)).toHaveLength(3);
@@ -41,22 +54,22 @@ describe("DocStore", () => {
       kind: "word",
       contents: "x",
       childrenIds: [],
+      createdAt: new Date(),
     });
     store.setState((s) => ({ ...s, currentVersionNumber: 2 }));
 
     const annId = myNanoid();
-    const ret = store
-      .getState()
-      .addAnnotation(
-        {
-          id: annId,
-          previousVersionId: "",
-          kind: "comment",
-          contents: "c",
-          status: "open",
-        },
-        elId
-      );
+    const ret = store.getState().addAnnotation(
+      {
+        id: annId,
+        previousVersionId: "",
+        kind: "comment",
+        contents: "c",
+        status: "open",
+        createdAt: new Date(),
+      },
+      elId
+    );
     expect(ret).toBe(annId);
     const ann = store.getState().annotations[annId];
     expect(ann).toBeDefined();
@@ -74,19 +87,24 @@ describe("DocStore", () => {
     const aId = myNanoid();
     store
       .getState()
-      .addElement({ id: eId, kind: "word", contents: "y", childrenIds: [] });
-    store
-      .getState()
-      .addAnnotation(
-        {
-          id: aId,
-          previousVersionId: "",
-          kind: "comment",
-          contents: "c",
-          status: "open",
-        },
-        eId
-      );
+      .addElement({
+        id: eId,
+        kind: "word",
+        contents: "y",
+        childrenIds: [],
+        createdAt: new Date(),
+      });
+    store.getState().addAnnotation(
+      {
+        id: aId,
+        previousVersionId: "",
+        kind: "comment",
+        contents: "c",
+        status: "open",
+        createdAt: new Date(),
+      },
+      eId
+    );
     store.getState().updateElementAnnotationValidity(eId, aId, 5);
     const mapping = store
       .getState()

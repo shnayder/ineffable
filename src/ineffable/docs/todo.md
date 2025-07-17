@@ -7,12 +7,13 @@ next: cleaning up state
     + update model
     + update components
     + add tests
-- Allow doc edits:
++ Allow doc edits:
     + change one word
     + change one sentence
     + change one paragraph
     + make the edit box the same-ish size as the original text.
 + set up react devtools
++ fix createdAt mess — for now, have caller set it. Cleaner: have a wrapper type helper like WithCreatedAt<Element>.
  - check that changing word only rerenders its ancestors, not entire doc
         - fix as needed based on https://chatgpt.com/c/68542486-c028-8011-9044-2fc769faf28d?model=o4-mini — React.memo / PureComponent
 - Further edits
@@ -26,7 +27,7 @@ next: cleaning up state
     - change a paragraph — should "just work" based on sentences if I do it right
 - reuse unchanged child elements when editing mid-tree nodes
 - get rid of contents in non-leaf elements
-- fix createdAt mess
+   - helper
 - add time travel slider -- keep things read-only at first
 - select vs edit gestures -- click to select, double-click or hit enter to edit?
 
