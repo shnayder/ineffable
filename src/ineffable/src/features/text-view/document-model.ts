@@ -3,6 +3,7 @@ import { useDocStore, type DocState } from "./document-store";
 import type { UseBoundStore } from "zustand";
 import { Annotation, Element, DocumentVersion, ElementKind } from "./types";
 import { getOrThrow } from "@/utils/maphelp";
+import { greedyMatchParts } from "./reuse-utils";
 
 // --- DocumentModel: business logic, caching, parent relationships, immutable updates ---
 export class DocumentModel {
@@ -258,23 +259,20 @@ export class DocumentModel {
       prevFullContents = this.computeFullContents(previousId);
     }
 
-    // Make a map of original children contents to their Ids
-    // This will be used to check for matches when creating new elements.
-    const prevChildContents = new Map(
-      prevChildrenIds.map((id) => [this.computeFullContents(id), id])
-    );
-
-    // If we have multiple parts, create multiple elements
+    // Handle multiple new elements at this level
     if (contentParts.length > 1) {
+      let usedPrev = false;
       return contentParts
         .map((part) => {
-          // Check if the part matches the original contents
-          // TODO: bug - can only reuse a part once.
-          if (previousId && prevFullContents && part == prevFullContents) {
-            // If it matches, reuse the existing element
+          if (
+            previousId &&
+            !usedPrev &&
+            prevFullContents &&
+            part === prevFullContents
+          ) {
+            usedPrev = true;
             return [previousId];
           }
-          // Otherwise, create a new element for this part
           return this._parseContentsToElements(part, kind);
         })
         .flat();
@@ -303,64 +301,160 @@ export class DocumentModel {
       return element.id;
     };
 
-    let addSentence = (sentenceContents: string): Id => {
-      const wordTexts = this._splitContents(sentenceContents, "word");
-      let childrenIds = wordTexts.map((word) => addElementFn(word, "word"));
+    const addSentence = (sentenceContents: string, prevId?: Id): Id => {
+      let wordTexts = this._splitContents(sentenceContents, "word");
+      let childIds: Id[] = [];
+      if (prevId) {
+        const prevEl = this.getElement(prevId);
+        const prevWords = prevEl.childrenIds.map((cid) =>
+          this.computeFullContents(cid)
+        );
+        
+        // Determine which of the new words correspond to children of the
+        // previous sentence. Each match has the index of the old child and
+        // whether it was an exact text match.
+        const matches = greedyMatchParts(
+          prevEl.childrenIds.map((id, i) => ({ id, text: prevWords[i] })),
+          wordTexts,
+          (t: string) => [t],
+          0.25
+        );
+        for (let i = 0; i < matches.length; i++) {
+          const m = matches[i];
+          const part = wordTexts[i];
+          if (m.oldIndex != null && m.exact) {
+            childIds.push(prevEl.childrenIds[m.oldIndex]);
+          } else if (m.oldIndex != null) {
+            // The new word partially matches an old child. Re-parse that
+            // portion using the old word so any grandchildren can be reused.
+            childIds.push(
+              this._parseContentsToElements(
+                part,
+                "word",
+                prevEl.childrenIds[m.oldIndex]
+              )[0]
+            );
+          } else {
+            childIds.push(addElementFn(part, "word"));
+          }
+        }
+      } else {
+        childIds = wordTexts.map((word) => addElementFn(word, "word"));
+      }
       let sentenceElement = addElementFn(
         sentenceContents,
         "sentence",
-        childrenIds
+        childIds
       );
-      // add parentMap entries for the new children
-      childrenIds.forEach((cid) => {
-        this.parentMap.set(cid, sentenceElement);
-      });
-      // return the new sentence element id
+      childIds.forEach((cid) => this.parentMap.set(cid, sentenceElement));
       return sentenceElement;
     };
 
-    let addParagraph = (paragraphContents: string): Id => {
+    const addParagraph = (paragraphContents: string, prevId?: Id): Id => {
       const sentenceTexts = this._splitContents(paragraphContents, "sentence");
-      let childrenIds = sentenceTexts.map((sentence) => addSentence(sentence));
+      let childIds: Id[] = [];
+      if (prevId) {
+        const prevEl = this.getElement(prevId);
+        const prevSents = prevEl.childrenIds.map((cid) =>
+          this.computeFullContents(cid)
+        );
+        
+        // Match new sentences against the previous paragraph's children.
+        const matches = greedyMatchParts(
+          prevEl.childrenIds.map((id, i) => ({ id, text: prevSents[i] })),
+          sentenceTexts,
+          (t: string) => this._splitContents(t, "word"),
+          0.25
+        );
+        for (let i = 0; i < matches.length; i++) {
+          const m = matches[i];
+          const part = sentenceTexts[i];
+          if (m.oldIndex != null && m.exact) {
+            childIds.push(prevEl.childrenIds[m.oldIndex]);
+          } else if (m.oldIndex != null) {
+            // Partial match — recursively parse with the old sentence to
+            // reuse any matching words.
+            childIds.push(
+              this._parseContentsToElements(
+                part,
+                "sentence",
+                prevEl.childrenIds[m.oldIndex]
+              )[0]
+            );
+          } else {
+            childIds.push(addSentence(part));
+          }
+        }
+      } else {
+        childIds = sentenceTexts.map((s) => addSentence(s));
+      }
       let paragraphElement = addElementFn(
         paragraphContents,
         "paragraph",
-        childrenIds
+        childIds
       );
-      // add parentMap entries for the new children
-      childrenIds.forEach((cid) => {
-        this.parentMap.set(cid, paragraphElement);
-      });
-      // return the new paragraph element id
+      childIds.forEach((cid) => this.parentMap.set(cid, paragraphElement));
       return paragraphElement;
     };
 
-    let addDocument = (documentContents: string): Id => {
+    const addDocument = (documentContents: string, prevId?: Id): Id => {
       const paragraphTexts = this._splitContents(documentContents, "paragraph");
-      let childrenIds = paragraphTexts.map((paragraph) =>
-        addParagraph(paragraph)
-      );
+      let childIds: Id[] = [];
+      if (prevId) {
+        const prevEl = this.getElement(prevId);
+        const prevParas = prevEl.childrenIds.map((cid) =>
+          this.computeFullContents(cid)
+        );
+
+        // Match new paragraphs against the previous document's children so we
+        // can reuse entire paragraphs when possible.
+        const matches = greedyMatchParts(
+          prevEl.childrenIds.map((id, i) => ({ id, text: prevParas[i] })),
+          paragraphTexts,
+          (t: string) => this._splitContents(t, "sentence"),
+          0.25
+        );
+        for (let i = 0; i < matches.length; i++) {
+          const m = matches[i];
+          const part = paragraphTexts[i];
+          if (m.oldIndex != null && m.exact) {
+            childIds.push(prevEl.childrenIds[m.oldIndex]);
+          } else if (m.oldIndex != null) {
+            // Partial match — reparse with the old paragraph so its sentences
+            // and words can be reused when possible.
+            childIds.push(
+              this._parseContentsToElements(
+                part,
+                "paragraph",
+                prevEl.childrenIds[m.oldIndex]
+              )[0]
+            );
+          } else {
+            childIds.push(addParagraph(part));
+          }
+        }
+      } else {
+        childIds = paragraphTexts.map((p) => addParagraph(p));
+      }
       let documentElement = addElementFn(
         documentContents,
         "document",
-        childrenIds
+        childIds
       );
-      // add parentMap entries for the new children
-      childrenIds.forEach((cid) => {
-        this.parentMap.set(cid, documentElement);
-      });
-      // return the new document element id
+      childIds.forEach((cid) => this.parentMap.set(cid, documentElement));
       return documentElement;
     };
 
     if (kind === "word") {
-      return [addElementFn(contents, "word")];
+      return [previousId && contents === prevFullContents
+        ? previousId
+        : addElementFn(contents, "word")];
     } else if (kind === "sentence") {
-      return [addSentence(contents)];
+      return [addSentence(contents, previousId)];
     } else if (kind === "paragraph") {
-      return [addParagraph(contents)];
+      return [addParagraph(contents, previousId)];
     } else if (kind === "document") {
-      return [addDocument(contents)];
+      return [addDocument(contents, previousId)];
     } else {
       throw new Error(`Unknown element kind: ${kind}`);
     }
