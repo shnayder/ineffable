@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Annotation, Element, ElementKind } from './types';
+import { Annotation, ElementKind } from './types';
 import { Id } from '@/utils/nanoid';
 import { docModel, useCurrentVersion, useElement } from './document-model';
 
@@ -87,6 +87,7 @@ const DocumentPanel: React.FC<DocumentPanelProps> = ({ sliderValue, onSelect, se
     
   const isActiveLevel = (level: ElementKind) => sliderValue === level;
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getAnnotationCountElement = (id: Id) => {
     const annotations: Annotation[] = [];
     if (annotations.length > 0) {

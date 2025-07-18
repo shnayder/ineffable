@@ -336,7 +336,6 @@ describe("DocumentModel", () => {
     const para2 = model.getElement(root.childrenIds[1]);
     const sentEF = model.getElement(para2.childrenIds[1]);
     const wordE = model.getElement(sentEF.childrenIds[0]);
-    const wordF = model.getElement(sentEF.childrenIds[1]);
 
     // Replace E F with E X.
     model.updateElement(sentEF.id, "E X.");

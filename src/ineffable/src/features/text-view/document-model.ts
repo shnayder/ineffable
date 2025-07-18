@@ -1,6 +1,5 @@
 import { Id, myNanoid } from "@/utils/nanoid";
-import { useDocStore, type DocState } from "./document-store";
-import type { UseBoundStore } from "zustand";
+import { useDocStore } from "./document-store";
 import {
   Annotation,
   Element,
@@ -111,6 +110,7 @@ export class DocumentModel {
     return el;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getAnnotationsFor(elementId: Id): Annotation[] {
     return []; // this.annotationMap.get(elementId) ?? [];
   }
@@ -140,7 +140,7 @@ export class DocumentModel {
       throw new Error(`Element with id ${origElementId} not found`);
     }
     // Create new element or elements, adding them to the store and updating the parentMap where needed.
-    let newElementIds: Id[] = this._parseContentsToElements(
+    const newElementIds: Id[] = this._parseContentsToElements(
       newContents,
       oldElement.kind,
       oldElement.id
@@ -168,7 +168,7 @@ export class DocumentModel {
    */
   _replaceElement(origElement: Element, newElementIds: Id[]): void {
     const state = this._store.getState();
-    let origElementId = origElement.id;
+    const origElementId = origElement.id;
     if (origElement.kind === "document" && newElementIds.length > 1) {
       throw new Error(
         `Cannot update document element with more than one new elements: got ${newElementIds.length}`
@@ -553,7 +553,7 @@ export class DocumentModel {
    */
   validateParentMap(): void {
     // Go through every element in the document, check that its parent is correct
-    let check = (el: Element) => {
+    const check = (el: Element) => {
       const children = el.childrenIds.map((id) => this.getElement(id));
       for (const child of children) {
         const parentId = this.parentMap.get(child.id);

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import Slider from '@/components/Slider';
-import { DocumentModel } from './document-model'
-import { DocumentVersion, Element, ElementKind } from './types';
+import { ElementKind } from './types';
 import DetailsPanel from './details-panel';
 import DocumentPanel from './document-panel';
-import { useDocStore } from './document-store'; 
 
 type SliderStop = Exclude<ElementKind, 'document'>;
 // TODO — define the list in types.ts as a const, use it to define the type and the list of stops
