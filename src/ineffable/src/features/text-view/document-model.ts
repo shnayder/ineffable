@@ -132,6 +132,28 @@ export class DocumentModel {
     return anns;
   }
 
+  /* Versioning */
+
+  getCurrentVersionNumber(): number {
+    const state = this._store.getState();
+    const num = state.currentVersionNumber;
+    if (num === null) {
+      // This should not happen after constructor
+      throw new Error("No current version number set");
+    }
+    return num;
+  }
+
+  getLatestVersionNumber(): number {
+    const state = this._store.getState();
+    return state.nextVersionNumber - 1;
+  }
+
+  switchToVersion(versionNumber: number): void {
+    this._store.getState().switchCurrentVersion(versionNumber);
+    this.rebuildCaches();
+  }
+
   /* Write */
 
   /**

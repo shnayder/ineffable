@@ -713,3 +713,53 @@ describe("DocumentModel", () => {
     });
   });
 });
+
+describe("DocumentModel version management", () => {
+  let store: ReturnType<typeof createDocStore>;
+  let model: DocumentModel;
+
+  beforeEach(() => {
+    store = createDocStore();
+    model = new DocumentModel(store);
+    // The constructor creates an initial version 1
+  });
+
+  it("should initialize with version 1", () => {
+    expect(model.getCurrentVersionNumber()).toBe(1);
+    expect(model.getLatestVersionNumber()).toBe(1);
+  });
+
+  it("should switch versions and rebuild caches", () => {
+    // Create a new version by updating an element
+    const root = model.getRootElement();
+    model.updateElement(root.id, "new content");
+
+    expect(model.getLatestVersionNumber()).toBe(2);
+    expect(model.getCurrentVersionNumber()).toBe(2);
+
+    model.switchToVersion(1);
+    expect(model.getCurrentVersionNumber()).toBe(1);
+
+    // Check if caches are rebuilt (indirectly)
+    const rootV1 = model.getRootElement();
+    expect(rootV1.childrenIds).toHaveLength(0); // Initial root was empty
+
+    model.switchToVersion(2);
+    const rootV2 = model.getRootElement();
+    expect(rootV2.childrenIds.length).toBeGreaterThan(0); // Root has children after update
+  });
+
+  it("should provide the latest version number", () => {
+    const root = model.getRootElement();
+    model.updateElement(root.id, "new content");
+    model.updateElement(root.id, "more content");
+
+    expect(model.getLatestVersionNumber()).toBe(3);
+  });
+
+  it("should throw when switching to a non-existent version", () => {
+    expect(() => model.switchToVersion(99)).toThrow(
+      "Version 99 does not exist"
+    );
+  });
+});

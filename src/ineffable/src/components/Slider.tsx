@@ -20,7 +20,7 @@ const Slider: React.FC<SliderProps> = ({ stops, value, onChange }) => {
         className="w-full accent-primary-fg"
       />
       <div className="flex justify-between text-xs mt-1">
-        {stops.map((stop, idx) => (
+        {stops.map((stop) => (
           <button
             key={stop}
             type="button"
