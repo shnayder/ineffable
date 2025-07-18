@@ -1,38 +1,47 @@
 Working todo list for small stuff that's not worth tracking in issues
 
 next: cleaning up state
-+ change types based roughly on chatgpt suggestion, normalizing:
-    + Element of different "kinds" (paragraph, sentence, word)
-        child ids
-        + decide uuid or nanoid (look up nanoid)
-    + Annotation points at an id
-+ make a Document class
-    + create from set of elements and annotations
-    + maintain parent maps and other indexes as needed
-    + helper function to parse from text
-- set up unit testing
-    + basic document test
-    + vscode automation — run on save probably
-- make things run again
-    + Add document methods to read elements
-        - add tests
-    + update react components to use new stuff, pull from store
-    - Zustand 1: add doc to a store
-    - add mock annotations to version when loading
-- allow single edit
-    - Add document methods to edit doc
-        - implement, test immutability -- change a word -> changes parent sentence -> doc
-    - figure out how to edit in Zustand
-    - text editing: let user change a word in some ugly way (modal? :)
-    - set up react devtools
-    - check that changing word only rerenders its ancestors, not entire doc
-        - fix as needed based on https://chatgpt.com/c/68542486-c028-8011-9044-2fc769faf28d?model=o4-mini — React.memo / PureComponent
-- persist to idb
-- allow editing sentences, paragraphs
-- annotation CRUD
++ make things run again without annotations
+    + update types based on latest plan
+    + update store
+    + update model
+    + update components
+    + add tests
++ Allow doc edits:
+    + change one word
+    + change one sentence
+    + change one paragraph
+    + make the edit box the same-ish size as the original text.
++ set up react devtools
++ fix createdAt mess — for now, have caller set it. Cleaner: have a wrapper type helper like WithCreatedAt<Element>.
++ get rid of contents in non-leaf elements and recompute dynamically, or ensure it updates with edits.
+   + perhaps those are equivalent — I suppose I could have a lazy recompute or eager one. And really no need to store it. Let's make it dynamic, and add a cache if it seems warranted later.
++ fix storage so it actually persists (don't overwrite with sample text every time)
++ reuse unchanged child elements when editing mid-tree nodes
++ Further edits
+    + add a word
+    + change a sentence
+        + change a couple of words
+        + split into two or more sentences
+    + add a sentence
+    + change a paragraph — should "just work" based on sentences if I do it right
+    + remove a word
+    + delete a sentence
+    + add a paragraph
++ select vs edit gestures -- click to select, double-click or hit enter to edit?
+- merge!
+- add back annotations support
+- add time travel slider -- keep things read-only at first
+- check that changing word only rerenders its ancestors, not entire doc
+   - fix as needed based on https://chatgpt.com/c/68542486-c028-8011-9044-2fc769faf28d?model=o4-mini — React.memo / PureComponent
+
+
 - and then we can finally get to the best practices side of the house and then the first AI bits
 
 
+idea (for later): add placeholder elements to the tree, or perhaps treat it as an element state — "a paragraph about the injustice of it all" that I plan to come back to and replace with actual text. 
 
-idea : some annotations can be elements in the tree, rather than attached to them. Or perhaps it's better to call it something else. Some sentences are "TODO: blah blah". Others are actual text. So it's a different kind of sentence, paragraph — a "real text" bit, or a multi-value type.
-
+future: 
+- real DB
+- periodic sync to google docs or file or something
+- 

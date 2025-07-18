@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "test:debug": "vitest --inspect-brk --no-file-parallelism"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.10",
+    "immer": "^10.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "reactflow": "^11.0.0",
