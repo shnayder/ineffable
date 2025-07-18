@@ -130,6 +130,11 @@ export class DocumentModel {
    * @returns nothing
    */
   updateElement(origElementId: Id, newContents: string): void {
+    if (!newContents || newContents.trim() === "") {
+      throw new Error(
+        "New contents cannot be empty. Use deleteElement to remove."
+      );
+    }
     const oldElement = this.getElement(origElementId);
     if (!oldElement) {
       throw new Error(`Element with id ${origElementId} not found`);
@@ -393,41 +398,72 @@ export class DocumentModel {
     }
     const oldParent = this.getElement(oldParentId);
     if (!oldParent) {
-      throw new Error(`Parent element with id ${oldParentId} not found`);
+      throw new Error(`Element with id ${oldParentId} not found`);
     }
-    const { addElement } = this._store.getState();
-
-    // Create a new parent element with the updated child ids in place of the old child id in the parent's childrenIds.
-    let newChildrenIds = oldParent.childrenIds.flatMap((cid) =>
+    const newChildrenIds = oldParent.childrenIds.flatMap((cid) =>
       cid === oldChildId ? replacementChildIds : [cid]
     );
-
-    // console.log(`oldParent.childrenIds: ${oldParent.childrenIds}`);
-    // console.log(`newChildrenIds: ${newChildrenIds}`);
-
-    let newParent = {
+    const newParent = {
       ...oldParent,
       id: myNanoid(),
       childrenIds: newChildrenIds,
       createdAt: new Date(),
     };
-    // Add the new parent to the store
-    addElement(newParent);
-    // Update the parentMap for the new children
-    newChildrenIds.forEach((cid) => {
-      // console.log(`Setting parentMap(${cid}) = ${newParent.id}`);
-      this.parentMap.set(cid, newParent.id);
-    });
-    // Return the new parent element
+    this._store.getState().addElement(newParent);
+    newChildrenIds.forEach((cid) => this.parentMap.set(cid, newParent.id));
     return newParent;
   }
 
-  // TODO: createElement
-  // do I want createSibling(sibId, before/after), or createChild(parent, index), or something else.
-  // See what I need in the app.
+  /**
+   * Adds a new element after a given element.
+   * @param prevElementId The ID of the element to add the new element after.
+   * @param toAdd The string contents of the new element to add.
+   */
+  addAfter(prevElementId: Id, toAdd: string): void {
+    const prevElement = this.getElement(prevElementId);
+    if (prevElement.kind === "document") {
+      throw new Error("Cannot add an element after the root document element.");
+    }
+
+    const newElementIds = this._parseContentsToElements(
+      toAdd,
+      prevElement.kind
+    );
+    if (newElementIds.length === 0) {
+      console.warn("No new elements were created from the provided content.");
+      return;
+    }
+
+    const parentId = this.parentMap.get(prevElementId);
+    if (!parentId) {
+      throw new Error(`Element with id ${prevElementId} has no parent.`);
+    }
+    const parent = this.getElement(parentId);
+
+    const newChildrenIds = [...parent.childrenIds];
+    const prevIndex = newChildrenIds.indexOf(prevElementId);
+    if (prevIndex === -1) {
+      throw new Error(
+        `Element ${prevElementId} not found in parent ${parentId}.`
+      );
+    }
+    newChildrenIds.splice(prevIndex + 1, 0, ...newElementIds);
+
+    const newParentEl = {
+      ...parent,
+      id: myNanoid(),
+      childrenIds: newChildrenIds,
+      createdAt: new Date(),
+    };
+    this._store.getState().addElement(newParentEl);
+    newChildrenIds.forEach((cid) => this.parentMap.set(cid, newParentEl.id));
+
+    this._replaceElement(parent, [newParentEl.id]);
+  }
 
   /**
-   * Delete the element with the given id. Internally, creates a new version where this element is removed from the parent's childrenIds. The element will not be removed from the store, so it can still be accessed in previous versions.
+   * Deletes an element. This will also delete all its children.
+   * Internally, creates a new version where this element is removed from the parent's childrenIds. The element will not be removed from the store, so it can still be accessed in previous versions.
    *
    * @param id Id of the element to delete. This should never be a document element, since we don't delete those.
    * @throws Error if the element is a document or if the element does not exist.
@@ -443,9 +479,22 @@ export class DocumentModel {
       throw new Error("Cannot delete document element");
     }
 
-    // Replace with empty list to remove it from the parent's childrenIds.
-    // This will bubble up to the root element, creating a new version.
-    this._replaceElement(el, []);
+    const parentId = this.parentMap.get(id);
+    if (!parentId) {
+      // This can happen if we are deleting an element whose parent is also being deleted in the same operation.
+      // In that case, we can consider the element already deleted.
+      return;
+    }
+    const parent = this.getElement(parentId);
+    const newChildrenIds = parent.childrenIds.filter((cid) => cid !== id);
+
+    if (newChildrenIds.length === 0 && parent.kind !== "document") {
+      this.deleteElement(parentId);
+    } else {
+      // Replace with empty list to remove it from the parent's childrenIds.
+      // This will bubble up to the root element, creating a new version.
+      this._replaceElement(el, []);
+    }
   }
 
   computeFullContents(id: Id): string {

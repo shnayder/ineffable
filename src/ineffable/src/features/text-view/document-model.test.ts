@@ -385,7 +385,73 @@ describe("DocumentModel", () => {
     expect(remaining.id).toEqual(secondSentence.id);
   });
 
-  describe("examples from docs", () => {
+  it("add a paragraph", () => {
+    model.updateElement(model.getRootElement().id, "A B.\n\nC D.");
+    const root = model.getRootElement();
+    const firstPara = model.getElement(root.childrenIds[0]);
+    const secondPara = model.getElement(root.childrenIds[1]);
+
+    model.addAfter(firstPara.id, "X Y. Z W.");
+
+    const updatedRoot = model.getRootElement();
+    expect(updatedRoot.childrenIds.length).toBe(3);
+    const newFirstPara = model.getElement(updatedRoot.childrenIds[0]);
+    const addedPara = model.getElement(updatedRoot.childrenIds[1]);
+    const newLastPara = model.getElement(updatedRoot.childrenIds[2]);
+    expect(model.computeFullContents(addedPara.id)).toBe("X Y. Z W.");
+    expect(newFirstPara.id).toEqual(firstPara.id);
+    expect(newLastPara.id).toEqual(secondPara.id);
+  });
+
+  it("delete last remaining word in a sentence", () => {
+    model.updateElement(model.getRootElement().id, "A B. D.");
+    const root = model.getRootElement();
+    const para = model.getElement(root.childrenIds[0]);
+    const firstSentence = model.getElement(para.childrenIds[0]);
+    const secondSentence = model.getElement(para.childrenIds[1]);
+    const wordD = model.getElement(secondSentence.childrenIds[0]);
+    // delete the only word in the second sentence
+    model.deleteElement(wordD.id);
+    // now we expect the second paragraph to also be gone
+    const updatedRoot = model.getRootElement();
+    const updatedPara = model.getElement(updatedRoot.childrenIds[0]);
+    // should only have one sentence left
+    expect(updatedPara.childrenIds.length).toBe(1);
+    const updatedSent = model.getElement(updatedPara.childrenIds[0]);
+    // and it should be the first sentence
+    expect(updatedSent.id).toEqual(firstSentence.id);
+  });
+
+  it("delete last remaining word in a one-sentence paragraph", () => {
+    model.updateElement(model.getRootElement().id, "D.");
+    const root = model.getRootElement();
+    const para = model.getElement(root.childrenIds[0]);
+    const firstSentence = model.getElement(para.childrenIds[0]);
+    const wordD = model.getElement(firstSentence.childrenIds[0]);
+    // delete the only word in the paragraph
+    model.deleteElement(wordD.id);
+    // now we expect the paragraph to also be gone
+    const updatedRoot = model.getRootElement();
+    expect(updatedRoot.childrenIds.length).toBe(0);
+  });
+
+  it("delete last remaining sentence in a paragraph", () => {
+    model.updateElement(model.getRootElement().id, "C D.\n\nE F.");
+    const root = model.getRootElement();
+    const para1 = model.getElement(root.childrenIds[0]);
+    const para2 = model.getElement(root.childrenIds[1]);
+    const onlySentence = model.getElement(para1.childrenIds[0]);
+    // delete the only sentence
+    model.deleteElement(onlySentence.id);
+    // now we expect the paragraph to be gone
+    const updatedRoot = model.getRootElement();
+    expect(updatedRoot.childrenIds.length).toBe(1);
+    const updatedPara = model.getElement(updatedRoot.childrenIds[0]);
+    // and it should be the first paragraph
+    expect(updatedPara.id).toEqual(para2.id);
+  });
+
+  describe("reuse elements correctly", () => {
     it("1. 'E' -> 'F'", () => {
       const root = model.getRootElement();
       model.updateElement(root.id, "E");
