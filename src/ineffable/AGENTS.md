@@ -39,7 +39,7 @@ This is a prototype of a structured tool for writing with AI support. The user c
 1. Write readable code
     1. Factor out small, clearly named helper functions
     1. Use pure functions for logic when practical
-    1. All functions except the most trivial should have docstrings.
+    1. All functions except the most trivial should have docstrings, including @params and @returns descriptions.
     1. Include inline comments that guide the reader through the code
         - what is each block of code doing
         - more importantly, why
@@ -50,3 +50,11 @@ This is a prototype of a structured tool for writing with AI support. The user c
     1. the design system in design-system.md
     1. Add other files as appropriate
 
+## Additional best practices
+
+1. Favor clarity over cleverness. Write code that is easy to read and understand.
+1. Choose descriptive and consistent names for variables, functions, and files.
+1. Keep functions focused on a single responsibility and avoid deeply nested logic.
+1. Validate assumptions and handle edge cases explicitly to prevent surprises.
+1. Document non-obvious invariants or design decisions with brief comments.
+1. Write tests for new behavior and edge cases to ensure future changes remain correct.
