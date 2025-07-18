@@ -6,6 +6,16 @@ import { Id } from "@/utils/nanoid";
 // For now, static, but could be user defined
 export type ElementKind = "document" | "paragraph" | "sentence" | "word";
 
+export function getChildKind(kind: ElementKind): ElementKind {
+  const childKind: Record<ElementKind, ElementKind> = {
+    document: "paragraph",
+    paragraph: "sentence",
+    sentence: "word",
+    word: "word",
+  };
+  return childKind[kind];
+}
+
 // Document Elements
 // Note: not insisting via type system that these are hierarchical, but they are
 export interface Element {

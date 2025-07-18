@@ -123,3 +123,49 @@ Model internals to maintain for efficient lookups:
 - perhaps a count of annotations per element
 
 // TODO: thought — take createAt handling out of store logic, handle it in the model, so I can just pass Element objects around
+
+## Update logic for reusing elements
+
+We are replacing an element with some new text. The original element may have children, etc.
+
+The goal is to reuse the original, child, and grandchild elements where possible.
+
+Examples:
+
+1. "E" -> "F". No reuse.
+1. "E" -> "E F". Reuse E, make new element for F
+1. "E" -> "E E". Reuse first E, new element for second.
+1. "Life is good." -> "Life is very good.". New element for very.
+1. "Life is very good." -> "Life is very very good.". New element for second very.
+1. "A B C." -> "C B A". All new elements.
+1. "Hello. Nice to meet you." (paragraph) -> "Hello. How are you?" reuse "Hello." sentence.
+1. "Hello. Nice to meet you." (paragraph) -> "Hello. Very nice to meet you." reuse "Hello.", "to", "meet", "you" words.
+1. "Hello. Nice to meet you." (paragraph) -> "Hello. Hello. Nice to meet you." reuse both sentences, make new one for second hello.
+1. "Hello. Nice to meet you." (paragraph) -> "Hello. Very nice to meet you. Nice to meet you." Reuse "Hello.". Reuse "to", "meet", "you" words for second sentence, make a new element for third. (i.e. Try to match >25% of child elements before moving on to next part.)
+1. "A B." -> "X A B.". Reuse A, B.
+
+Logic.
+
+1. Inputs
+  - origElement: the element being replaced (could be a word, sentence, paragraph, etc.)
+  - newContents: the new string contents
+  - kind: the level of element ("word", "sentence", "paragraph")
+
+2. High-Level Steps
+  1. Parse newContents into parts of the given kind (e.g., for a sentence, split into words).
+  1. Compare the parsed parts to the original element and its children.
+  1. Reuse existing child elements where possible (by value and order).
+  1. For parts that don't match exactly, try to match children and reuse them.
+  1. Create new elements for unmatched parts.
+  1. Build a new list of children for the parent, mixing reused and new elements.
+
+3. Matching & Reuse Strategy
+  - Left-to-right, greedy matching: For each part in the new contents, try to match it to the next unused child element with the same value.
+  - If found, reuse that element (and mark it as used).
+  - If not found:
+    - if leaf: create a new element.
+    - not leaf: try to match children
+      - if enough (25%) match, use them, consider parent element used
+      - if not, keep trying to match next elements
+  - No reordering: If the order changes (e.g., "A B C" → "C B A"), do not reuse elements (all new).
+  - Duplicate handling: If a value appears multiple times, only reuse as many existing elements as there are matches in order.

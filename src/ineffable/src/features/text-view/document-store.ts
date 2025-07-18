@@ -25,8 +25,10 @@
  */
 
 import { create } from "zustand";
+import type { StateCreator } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { persist, devtools } from "zustand/middleware";
+import { persist, devtools, createJSONStorage } from "zustand/middleware";
+import type { StateStorage } from "zustand/middleware";
 import type { Id } from "@/utils/nanoid";
 import type { Draft } from "immer";
 import type {
@@ -37,7 +39,7 @@ import type {
 } from "./types";
 
 // --- Zustand Store Definition ---
-interface DocState {
+export interface DocState {
   // normalized raw data maps
   elements: Record<Id, Element>;
   annotations: Record<Id, Annotation>;
@@ -54,13 +56,13 @@ interface DocState {
   getAllElementAnnotations: () => ElementAnnotation[];
 
   // mutators
-  addElement: (el: Omit<Element, "createdAt">) => Id;
-  addElements: (els: Omit<Element, "createdAt">[]) => Id[];
+  addElement: (el: Element) => Id;
+  addElements: (els: Element[]) => Id[];
   // for now, no update or remove methods —- immutable, append-only model.
   // Can add garbage collection later if I end up with too many versions.
 
   // annotations are also append-only and immutable
-  addAnnotation: (ann: Omit<Annotation, "createdAt">, targetId: Id) => Id;
+  addAnnotation: (ann: Annotation, targetId: Id) => Id;
   // For now, only add one at a time. Add bulk later if needed.
 
   addElementAnnotation: (elAnn: ElementAnnotation) => void;
@@ -76,133 +78,161 @@ interface DocState {
   addVersion: (rootId: Id) => number;
 }
 
-export const useDocStore = create<DocState>()(
-  devtools(
-    persist(
-      immer((set, get) => ({
-        elements: {},
-        annotations: {},
-        elementAnnotations: [],
-        versions: {},
-        currentVersionNumber: null,
-        nextVersionNumber: 1,
+const createState: StateCreator<
+  DocState,
+  [["zustand/immer", never]],
+  [],
+  DocState
+> = (set, get) => ({
+  elements: {},
+  annotations: {},
+  elementAnnotations: [],
+  versions: {},
+  currentVersionNumber: null,
+  nextVersionNumber: 1,
 
-        // selectors
-        getElement: (id) => get().elements[id],
-        getAllElements: () => Object.values(get().elements),
-        getAnnotation: (id) => get().annotations[id],
-        getAllAnnotations: () => Object.values(get().annotations),
-        getAllElementAnnotations: () => get().elementAnnotations,
+  // selectors
+  getElement: (id) => get().elements[id],
+  getAllElements: () => Object.values(get().elements),
+  getAnnotation: (id) => get().annotations[id],
+  getAllAnnotations: () => Object.values(get().annotations),
+  getAllElementAnnotations: () => get().elementAnnotations,
 
-        // mutators
-        addElement: ({ id, kind, contents, childrenIds }) => {
-          const createdAt = new Date();
-          set((state) => {
-            state.elements[id] = { id, kind, contents, childrenIds, createdAt };
-          });
-          return id;
-        },
+  // mutators
+  addElement: (el: Element) => {
+    if (el.kind !== "word" && el.contents && el.contents !== "") {
+      throw new Error(
+        `Non-word element ${el.id} with kind ${el.kind} cannot have contents`
+      );
+    }
+    set((state) => {
+      state.elements[el.id] = el;
+    });
+    return el.id;
+  },
 
-        addElements: (els) => {
-          const ids: Id[] = [];
-          set((state) => {
-            els.forEach(({ id, kind, contents, childrenIds }) => {
-              state.elements[id] = {
-                id,
-                kind,
-                contents,
-                childrenIds,
-                createdAt: new Date(),
-              };
-              ids.push(id);
-            });
-          });
-          return ids;
-        },
+  addElements: (els) => {
+    const ids: Id[] = [];
+    set((state) => {
+      els.forEach((el) => {
+        if (el.kind !== "word" && el.contents && el.contents !== "") {
+          throw new Error(
+            `Non-word element ${el.id} with kind ${el.kind} cannot have contents`
+          );
+        }
+        state.elements[el.id] = el;
+        ids.push(el.id);
+      });
+    });
+    return ids;
+  },
 
-        addAnnotation: (
-          { id, previousVersionId, kind, contents, status },
-          targetId
-        ) => {
-          const createdAt = new Date();
-          set((state) => {
-            state.annotations[id] = {
-              id,
-              previousVersionId,
-              kind,
-              contents,
-              status,
-              createdAt,
-            };
-          });
-          set((state) => {
-            state.elementAnnotations.push({
-              elementId: targetId,
-              annotationId: id,
-              validFromVersion: state.currentVersionNumber ?? 0,
-              validThroughVersion: null, // starts null, gets set later
-            });
-          });
-          return id;
-        },
+  addAnnotation: (
+    { id, previousVersionId, kind, contents, status, createdAt },
+    targetId
+  ) => {
+    set((state) => {
+      state.annotations[id] = {
+        id,
+        previousVersionId,
+        kind,
+        contents,
+        status,
+        createdAt,
+      };
+    });
+    set((state) => {
+      state.elementAnnotations.push({
+        elementId: targetId,
+        annotationId: id,
+        validFromVersion: state.currentVersionNumber ?? 0,
+        validThroughVersion: null, // starts null, gets set later
+      });
+    });
+    return id;
+  },
 
-        addElementAnnotation: (ellAn) => {
-          set((state) => {
-            state.elementAnnotations.push(ellAn);
-          });
-        },
+  addElementAnnotation: (ellAn) => {
+    set((state) => {
+      state.elementAnnotations.push(ellAn);
+    });
+  },
 
-        updateElementAnnotationValidity: (
-          elementId,
-          annotationId,
-          validThroughVersion
-        ) => {
-          // Import Draft from immer at the top of your file:
+  updateElementAnnotationValidity: (
+    elementId,
+    annotationId,
+    validThroughVersion
+  ) => {
+    // Import Draft from immer at the top of your file:
 
-          // Then, annotate the state parameter in your set callback:
-          set((state: Draft<DocState>) => {
-            const elAnn = state.elementAnnotations.find(
-              (ea) =>
-                ea.elementId === elementId && ea.annotationId === annotationId
-            );
-            if (!elAnn) {
-              throw new Error(
-                `ElementAnnotation not found for element ${elementId} and annotation ${annotationId}`
-              );
-            }
-            elAnn.validThroughVersion = validThroughVersion;
-          });
-        },
-
-        switchCurrentVersion: (versionNumber) => {
-          set((state) => {
-            if (!state.versions[versionNumber]) {
-              throw new Error(`Version ${versionNumber} does not exist`);
-            }
-            state.currentVersionNumber = versionNumber;
-          });
-        },
-
-        addVersion: (rootId) => {
-          let newVer: number;
-          set((state) => {
-            newVer = state.nextVersionNumber;
-            state.versions[newVer] = {
-              id: `${newVer}`,
-              rootId,
-              docVersionNumber: newVer,
-              formatVersion: "1.0",
-            };
-            state.currentVersionNumber = newVer;
-            state.nextVersionNumber += 1;
-          });
-          return newVer!;
-        },
-      })),
-      {
-        name: "document-store", // unique name for the storage
-        version: 1, // version of the store schema
+    // Then, annotate the state parameter in your set callback:
+    set((state: Draft<DocState>) => {
+      const elAnn = state.elementAnnotations.find(
+        (ea) => ea.elementId === elementId && ea.annotationId === annotationId
+      );
+      if (!elAnn) {
+        throw new Error(
+          `ElementAnnotation not found for element ${elementId} and annotation ${annotationId}`
+        );
       }
+      elAnn.validThroughVersion = validThroughVersion;
+    });
+  },
+
+  switchCurrentVersion: (versionNumber) => {
+    set((state) => {
+      if (!state.versions[versionNumber]) {
+        throw new Error(`Version ${versionNumber} does not exist`);
+      }
+      state.currentVersionNumber = versionNumber;
+    });
+  },
+
+  addVersion: (rootId) => {
+    let newVer: number;
+    set((state) => {
+      newVer = state.nextVersionNumber;
+      state.versions[newVer] = {
+        id: `${newVer}`,
+        rootId,
+        docVersionNumber: newVer,
+        formatVersion: "1.0",
+      };
+      state.currentVersionNumber = newVer;
+      state.nextVersionNumber += 1;
+    });
+    return newVer!;
+  },
+});
+
+function createMemoryStorage(): StateStorage {
+  const store: Record<string, string> = {};
+  return {
+    getItem: (name) => (name in store ? store[name] : null),
+    setItem: (name, value) => {
+      store[name] = value;
+    },
+    removeItem: (name) => {
+      delete store[name];
+    },
+  };
+}
+
+export function createDocStore(options: { storage?: StateStorage } = {}) {
+  const storage =
+    options.storage ??
+    (typeof window === "undefined"
+      ? createMemoryStorage()
+      : window.localStorage);
+  return create<DocState>()(
+    devtools(
+      persist(immer(createState), {
+        name: "document-store",
+        version: 1,
+        storage: createJSONStorage(() => storage),
+      })
     )
-  )
-);
+  );
+}
+
+export const useDocStore = createDocStore();
