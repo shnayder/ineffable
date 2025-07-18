@@ -3,9 +3,9 @@ import { Annotation, Element, ElementKind } from './types';
 import { Id } from '@/utils/nanoid';
 import { docModel, useCurrentVersion, useElement } from './document-model';
 
-interface TextPanelProps {
+interface DocumentPanelProps {
   sliderValue: Exclude<ElementKind, 'document'>;
-  onSelect: (id: Id) => void;
+  onSelect: (id: Id | null) => void;
   selected: Id | null;
 }
 
@@ -23,7 +23,7 @@ function computeTextAreaSize(width: number, height: number) {
   };
 }
 
-const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, selected }) => {
+const DocumentPanel: React.FC<DocumentPanelProps> = ({ sliderValue, onSelect, selected }) => {
   const currentVersion = useCurrentVersion();
   const rootId = currentVersion.rootId;
   const root = useElement(rootId);
@@ -49,7 +49,12 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
     if (!editingId || !textareaRef.current) return;
     
     const newValue = textareaRef.current.value;
-    docModel.updateElement(editingId, newValue);
+    if (!newValue || newValue.trim() === "") {
+      docModel.deleteElement(editingId);
+      onSelect(null);
+    } else {
+      docModel.updateElement(editingId, newValue);
+    }
     setEditingId(null);
     setEditingSize(null);
   };
@@ -119,7 +124,6 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
     id: Id;
   }
   
-  
   const DocumentElement: React.FC<DocumentElementProps> = ({ id }) => {
     const el = useElement(id);
     const isEditing = editingId === id;
@@ -132,10 +136,16 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
         cancelEdit();
       }
     };
-    
-    const handleClick = () => {
-      onSelect(id);
-      panelRef.current?.focus();
+
+    const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      // our elements are nested, so a click on a word will 
+      // propagate to the parent sentence and then paragraph. 
+      // We want the element at the current slider level to be selected.
+      if (el.kind === sliderValue) {
+        onSelect(id);
+        e.stopPropagation();
+        panelRef.current?.focus();
+      }
     };
 
     const handleDoubleClick = () => {
@@ -200,21 +210,38 @@ const DocumentPanel: React.FC<TextPanelProps> = ({ sliderValue, onSelect, select
     }
     
     // paragraph
+    const isSelected = selected === id;
+    const handleAddParagraph = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      docModel.addAfter(id, "and then...");
+    };
+
     return (
-      <p
-        id={id}
-        className={getClassName('paragraph', id)}
-        onClick={handleClick}
-        onDoubleClick={handleDoubleClick}
-      >
-        {el.childrenIds.map((cid, idx) => (
-          <React.Fragment key={cid}>
-            <DocumentElement id={cid} />
-            {idx < el.childrenIds.length - 1 && ' '}
-          </React.Fragment>
-        ))}
-        {isActiveLevel('paragraph') && getAnnotationCountElement(id)}
-      </p>
+      <div className="relative">
+        <p
+          id={id}
+          className={getClassName("paragraph", id)}
+          onClick={handleClick}
+          onDoubleClick={handleDoubleClick}
+        >
+          {el.childrenIds.map((cid, idx) => (
+            <React.Fragment key={cid}>
+              <DocumentElement id={cid} />
+              {idx < el.childrenIds.length - 1 && " "}
+            </React.Fragment>
+          ))}
+          {isActiveLevel("paragraph") && getAnnotationCountElement(id)}
+        </p>
+        {isSelected && isActiveLevel("paragraph") && (
+          <button
+            onClick={handleAddParagraph}
+            className="absolute bottom-1 right-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-lg"
+            aria-label="Add paragraph after"
+          >
+            +
+          </button>
+        )}
+      </div>
     );
   };
   
