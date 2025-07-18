@@ -110,9 +110,26 @@ export class DocumentModel {
     return el;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  /**
+   * Return all annotations that are active for the given element in the current
+   * document version.
+   */
   getAnnotationsFor(elementId: Id): Annotation[] {
-    return []; // this.annotationMap.get(elementId) ?? [];
+    const state = this._store.getState();
+    const curVer = state.currentVersionNumber;
+    if (curVer == null) return [];
+    // TODO: once we have lots of annotations, will want to use a DB query instead of loading entire list
+    const anns = state
+      .getAllElementAnnotations()
+      .filter(
+        (ea) =>
+          ea.elementId === elementId &&
+          ea.validFromVersion <= curVer &&
+          (ea.validThroughVersion == null || curVer <= ea.validThroughVersion)
+      )
+      .map((ea) => state.getAnnotation(ea.annotationId)!)
+      .filter(Boolean);
+    return anns;
   }
 
   /* Write */
@@ -512,35 +529,147 @@ export class DocumentModel {
     return childTexts.join(" ");
   }
 
-  // // write paths incrementally update caches + store
-  // addAnnotation(targetId: Id, kind: Annotation["kind"], contents: string): Id {
-  //   const id = myNanoid();
-  //   this.store.addAnnotation({ id, targetId, kind, contents, status: "open" });
-  //   const ann: Annotation = {
-  //     id,
-  //     targetId,
-  //     kind,
-  //     contents,
-  //     status: "open",
-  //     createdAt: new Date(),
-  //   };
-  //   const arr = this.annotationMap.get(targetId) ?? [];
-  //   this.annotationMap.set(targetId, [...arr, ann]);
-  //   return id;
-  // }
+  /**
+   * Add a new annotation to the given element. Creates a new document version
+   * and returns the new annotation id.
+   */
+  addAnnotation(elementId: Id, kind: Annotation["kind"], contents: string): Id {
+    const state = this._store.getState();
+    const rootId = this.getRootElement().id;
+    // bump doc version first
+    state.addVersion(rootId);
+    const id = myNanoid();
+    const ann: Annotation = {
+      id,
+      previousVersionId: "",
+      kind,
+      contents,
+      status: "open",
+      createdAt: new Date(),
+    };
+    state.addAnnotation(ann, elementId);
+    return id;
+  }
 
-  // resolveAnnotation(id: Id): void {
-  //   const ann = this.store.getAnnotation(id);
-  //   if (!ann) return;
-  //   // update store
-  //   this.store.addAnnotation({ ...ann, status: "resolved" });
-  //   // update cache
-  //   const arr = this.annotationMap.get(ann.targetId) ?? [];
-  //   this.annotationMap.set(
-  //     ann.targetId,
-  //     arr.map((a) => (a.id === id ? { ...a, status: "resolved" } : a))
-  //   );
-  // }
+  /**
+   * Create a new version of an annotation with updated contents.
+   * Returns the id of the new annotation.
+   */
+  updateAnnotation(annotationId: Id, newContents: string): Id {
+    const state = this._store.getState();
+    const oldAnn = state.getAnnotation(annotationId);
+    if (!oldAnn) {
+      throw new Error(`Annotation ${annotationId} not found`);
+    }
+    const mapping = state
+      .getAllElementAnnotations()
+      .find(
+        (ea) =>
+          ea.annotationId === annotationId && ea.validThroughVersion == null
+      );
+    if (!mapping) {
+      throw new Error(
+        `Active mapping for annotation ${annotationId} not found`
+      );
+    }
+    // mark old mapping as no longer valid at current version
+    const curVer = state.currentVersionNumber ?? 0;
+    state.updateElementAnnotationValidity(
+      mapping.elementId,
+      annotationId,
+      curVer
+    );
+
+    // bump version and create new annotation
+    const rootId = this.getRootElement().id;
+    state.addVersion(rootId);
+
+    const newId = myNanoid();
+    const newAnn: Annotation = {
+      id: newId,
+      previousVersionId: annotationId,
+      kind: oldAnn.kind,
+      contents: newContents,
+      status: oldAnn.status,
+      createdAt: new Date(),
+    };
+    state.addAnnotation(newAnn, mapping.elementId);
+    return newId;
+  }
+
+  /**
+   * Change the status of an annotation by creating a new version with the new
+   * status.
+   */
+  changeAnnotationStatus(
+    annotationId: Id,
+    newStatus: Annotation["status"]
+  ): Id {
+    const state = this._store.getState();
+    const oldAnn = state.getAnnotation(annotationId);
+    if (!oldAnn) {
+      throw new Error(`Annotation ${annotationId} not found`);
+    }
+    const mapping = state
+      .getAllElementAnnotations()
+      .find(
+        (ea) =>
+          ea.annotationId === annotationId && ea.validThroughVersion == null
+      );
+    if (!mapping) {
+      throw new Error(
+        `Active mapping for annotation ${annotationId} not found`
+      );
+    }
+    const curVer = state.currentVersionNumber ?? 0;
+    state.updateElementAnnotationValidity(
+      mapping.elementId,
+      annotationId,
+      curVer
+    );
+
+    const rootId = this.getRootElement().id;
+    state.addVersion(rootId);
+
+    const newId = myNanoid();
+    const newAnn: Annotation = {
+      id: newId,
+      previousVersionId: annotationId,
+      kind: oldAnn.kind,
+      contents: oldAnn.contents,
+      status: newStatus,
+      createdAt: new Date(),
+    };
+    state.addAnnotation(newAnn, mapping.elementId);
+    return newId;
+  }
+
+  /**
+   * Delete an annotation by ending its validity and bumping the document
+   * version. No new annotation is created.
+   */
+  deleteAnnotation(annotationId: Id): void {
+    const state = this._store.getState();
+    const mapping = state
+      .getAllElementAnnotations()
+      .find(
+        (ea) =>
+          ea.annotationId === annotationId && ea.validThroughVersion == null
+      );
+    if (!mapping) {
+      throw new Error(
+        `Active mapping for annotation ${annotationId} not found`
+      );
+    }
+    const curVer = state.currentVersionNumber ?? 0;
+    state.updateElementAnnotationValidity(
+      mapping.elementId,
+      annotationId,
+      curVer
+    );
+    const rootId = this.getRootElement().id;
+    state.addVersion(rootId);
+  }
 
   // Debugging utilities
 
@@ -614,64 +743,22 @@ export function useMaxVersionNumber(): number {
   return useDocStore((s) => s.nextVersionNumber - 1);
 }
 
-// Same idea for annotations. TODO.
-// export function useAnnotations(id: Id) {
-//   const [list, setList] = useState(() => docModel.getAnnotationsFor(id));
-//   useEffect(() => {
-//     // subscribe only to raw-annotations map
-//     return useDocStore.subscribe(
-//       s => s.annotations[id],
-//       () => {
-//         setList(docModel.getAnnotationsFor(id));
-//       }
-//     );
-//   }, [id]);
-//   return list;
-// }
+export function useAnnotations(elementId: Id): Annotation[] {
+  return useDocStore((s) => {
+    const curVer = s.currentVersionNumber;
+    if (curVer == null) return [];
 
-// TODO: update to new model interface once I add annotation support back in
-// function addMockAnnotations(document: DocumentVersion): void {
-//   // Add mock annotations to the first paragraph, sentence, and word
-//   if (!document.allElements || document.allElements.length === 0) {
-//     return;
-//   }
-//   // Find root element
-//   let root = document.allElements.find((el) => el.id === document.rootId);
-//   if (!root || root.childrenIds.length === 0) {
-//     return; // No root element or no children
-//   }
-
-//   const firstParagraph = document.allElements.find(
-//     (el) => el.id === root.childrenIds[0]
-//   );
-//   if (!firstParagraph || firstParagraph.kind !== "paragraph") {
-//     return; // No first paragraph found
-//   }
-
-//   document.annotations.push(
-//     {
-//       id: myNanoid(),
-//       targetId: firstParagraph.id,
-//       kind: "comment",
-//       contents: "This is a mock comment on the first paragraph.",
-//       createdAt: new Date(),
-//       status: "open",
-//     },
-//     {
-//       id: myNanoid(),
-//       targetId: firstParagraph.id,
-//       kind: "suggestion",
-//       contents: "This is a mock suggestion on the first paragraph.",
-//       createdAt: new Date(),
-//       status: "open",
-//     },
-//     {
-//       id: myNanoid(),
-//       targetId: firstParagraph.id,
-//       kind: "suggestion",
-//       contents: "This is another suggestion on the first paragraph.",
-//       createdAt: new Date(),
-//       status: "open",
-//     }
-//   );
-// }
+    const state = s;
+    const anns = state
+      .getAllElementAnnotations()
+      .filter(
+        (ea) =>
+          ea.elementId === elementId &&
+          ea.validFromVersion <= curVer &&
+          (ea.validThroughVersion == null || curVer <= ea.validThroughVersion)
+      )
+      .map((ea) => state.getAnnotation(ea.annotationId)!)
+      .filter(Boolean);
+    return anns;
+  });
+}

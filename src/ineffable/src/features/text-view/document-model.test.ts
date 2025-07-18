@@ -666,4 +666,50 @@ describe("DocumentModel", () => {
       expect(words[2].id).toEqual(wB.id);
     });
   });
+
+  describe("annotations", () => {
+    it("adds annotation and bumps version", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "A B.");
+      const para = model.getElement(model.getRootElement().childrenIds[0]);
+      const sent = model.getElement(para.childrenIds[0]);
+      const wordA = model.getElement(sent.childrenIds[0]);
+      const prevVer = store.getState().currentVersionNumber;
+      const annId = model.addAnnotation(wordA.id, "comment", "note");
+      expect(store.getState().currentVersionNumber).toBe(prevVer! + 1);
+      const anns = model.getAnnotationsFor(wordA.id);
+      expect(anns).toHaveLength(1);
+      expect(anns[0].id).toBe(annId);
+      expect(anns[0].contents).toBe("note");
+    });
+
+    it("edits annotation creating new version", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "A B.");
+      const word = model.getElement(
+        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
+      );
+      const annId = model.addAnnotation(word.id, "comment", "old");
+      const verAfterAdd = store.getState().currentVersionNumber;
+      const newId = model.updateAnnotation(annId, "new");
+      expect(store.getState().currentVersionNumber).toBe(verAfterAdd! + 1);
+      const anns = model.getAnnotationsFor(word.id);
+      expect(anns).toHaveLength(1);
+      expect(anns[0].id).toBe(newId);
+      expect(anns[0].contents).toBe("new");
+    });
+
+    it("deletes annotation", () => {
+      const root = model.getRootElement();
+      model.updateElement(root.id, "A B.");
+      const word = model.getElement(
+        model.getElement(model.getRootElement().childrenIds[0]).childrenIds[0]
+      );
+      const annId = model.addAnnotation(word.id, "comment", "del");
+      const ver = store.getState().currentVersionNumber;
+      model.deleteAnnotation(annId);
+      expect(store.getState().currentVersionNumber).toBe(ver! + 1);
+      expect(model.getAnnotationsFor(word.id)).toHaveLength(0);
+    });
+  });
 });

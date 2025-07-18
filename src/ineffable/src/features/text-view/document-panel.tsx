@@ -89,7 +89,7 @@ const DocumentPanel: React.FC<DocumentPanelProps> = ({ sliderValue, onSelect, se
   
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getAnnotationCountElement = (id: Id) => {
-    const annotations: Annotation[] = [];
+    const annotations: Annotation[] = docModel.getAnnotationsFor(id);
     if (annotations.length > 0) {
       return (
         <span className="inline-flex items-center justify-center text-xs font-semibold rounded-md bg-secondary-bg text-secondary-fg border border-secondary-border w-4 h-4 ml-1">
